@@ -114,3 +114,30 @@ export async function fetchAll(service, { pSize = 100, maxPages = 50, params = {
   }
   return out;
 }
+
+/**
+ * 서비스마다 필수 파라미터가 다르고 개편에 따라 바뀐다.
+ * 후보 파라미터 조합을 순서대로 시도하고, 처음으로 성공한 조합의 결과를 돌려준다.
+ *
+ * ERROR-300(필수값 누락)은 "이 조합은 아니다"라는 뜻이므로 다음 후보로 넘어가고,
+ * 인증 실패처럼 조합과 무관한 오류는 그대로 던진다.
+ */
+export async function fetchAllTrying(service, paramSets, { pSize = 100, maxPages = 50 } = {}) {
+  const attempts = [];
+  for (const params of paramSets) {
+    try {
+      const rows = await fetchAll(service, { pSize, maxPages, params });
+      return { rows, params, attempts };
+    } catch (e) {
+      const retryable = e instanceof AssemblyApiError && /ERROR-300|ERROR-336|INFO-300/.test(e.code ?? e.message);
+      attempts.push({ params, error: e.message });
+      if (!retryable) throw e;
+    }
+  }
+  const err = new AssemblyApiError(
+    `필수 파라미터를 찾지 못했습니다. 시도한 조합: ${attempts.map((a) => JSON.stringify(a.params)).join(" / ")}`,
+    { service, code: "ERROR-300" },
+  );
+  err.attempts = attempts;
+  throw err;
+}

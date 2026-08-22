@@ -15,20 +15,27 @@ const ok = (s) => `\x1b[32m${s}\x1b[0m`;
 const bad = (s) => `\x1b[31m${s}\x1b[0m`;
 const dim = (s) => `\x1b[90m${s}\x1b[0m`;
 
-async function probeAssembly(label, service) {
+const AGE = process.env.SYNC_AGE || "22";
+
+/** 서비스마다 필수 파라미터가 달라 후보 조합을 순서대로 시도한다. */
+async function probeAssembly(label, service, paramSets = [{}, { AGE }, { AGE, ORD: AGE }]) {
   process.stdout.write(`\n[열린국회정보] ${label}  ${dim(service)}\n`);
-  try {
-    const { rows, total } = await fetchPage(service, { pSize: 2 });
-    if (rows.length === 0) {
-      console.log(`  ${bad("응답은 왔지만 데이터가 없습니다.")} (total=${total})`);
+  for (const params of paramSets) {
+    try {
+      const { rows, total } = await fetchPage(service, { pSize: 2, params });
+      if (rows.length === 0) {
+        console.log(`  ${dim(JSON.stringify(params))} → 데이터 없음 (total=${total})`);
+        continue;
+      }
+      console.log(`  ${ok("연결 성공")} ${dim(JSON.stringify(params))}  총 ${total.toLocaleString("ko-KR")}건`);
+      console.log(`  필드: ${Object.keys(rows[0]).join(", ")}`);
+      console.log(dim(`  샘플: ${JSON.stringify(rows[0]).slice(0, 400)}`));
       return;
+    } catch (e) {
+      console.log(`  ${dim(JSON.stringify(params))} → ${bad(e.message)}`);
     }
-    console.log(`  ${ok("연결 성공")}  총 ${total.toLocaleString("ko-KR")}건`);
-    console.log(`  필드: ${Object.keys(rows[0]).join(", ")}`);
-    console.log(dim(`  샘플: ${JSON.stringify(rows[0]).slice(0, 400)}`));
-  } catch (e) {
-    console.log(`  ${bad("실패")} ${e.message}`);
   }
+  console.log(`  ${bad("모든 파라미터 조합 실패")} — 포털의 서비스 상세에서 요청인자를 확인하세요.`);
 }
 
 async function probeLaw() {

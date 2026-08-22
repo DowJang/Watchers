@@ -19,7 +19,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { SERVICES, fetchAll } from "./lib/assembly.mjs";
+import { SERVICES, fetchAll, fetchAllTrying } from "./lib/assembly.mjs";
 import { searchLaw } from "./lib/lawgokr.mjs";
 import { mapBill, mapLegislator, mapVotes, slug, toIsoDate } from "./lib/map.mjs";
 
@@ -29,8 +29,11 @@ const ANALYSIS_DIR = join(ROOT, "src", "data", "analysis");
 
 /** 수집 범위 — 최근 N일 이내 발의/변경 의안 */
 const WINDOW_DAYS = Number(process.env.SYNC_WINDOW_DAYS ?? 120);
-/** 대수 (22대 등). 비워 두면 API 기본값. */
-const AGE = process.env.SYNC_AGE ?? "";
+/**
+ * 대수. 열린국회정보의 의안·표결 서비스는 대수를 필수로 요구한다.
+ * 2024-05-30 개원한 제22대 국회가 기본값이며, SYNC_AGE 로 바꿀 수 있다.
+ */
+const AGE = process.env.SYNC_AGE || "22";
 
 const log = [];
 function note(level, message, extra) {
@@ -89,31 +92,40 @@ async function main() {
     .map((name) => ({ id: slug(name), name, color: partyColor(name) }));
 
   // ── 2. 의안정보 ────────────────────────────────────────
+  // 서비스마다 필수 파라미터 이름이 달라 후보 조합을 순서대로 시도한다.
   let bills = [];
   try {
-    const rows = await fetchAll(SERVICES.bills, {
-      pSize: 100,
-      maxPages: 20,
-      params: { AGE, PROPOSE_DT: undefined },
-    });
+    const { rows, params } = await fetchAllTrying(
+      SERVICES.bills,
+      [{ AGE }, { AGE, ORD: AGE }, { DAESU: AGE }, { UNIT_CD: `1000${AGE}` }, {}],
+      { pSize: 100, maxPages: 20 },
+    );
+    note("info", `의안 API 파라미터: ${JSON.stringify(params)}`);
     const since = daysAgoIso(WINDOW_DAYS);
-    bills = rows
-      .map(mapBill)
-      .filter(Boolean)
-      .filter((b) => !b.fact.proposal.proposedAt || b.fact.proposal.proposedAt >= since);
-    note("info", `의안 ${bills.length}건 수집 (최근 ${WINDOW_DAYS}일)`);
+    const mapped = rows.map(mapBill).filter(Boolean);
+    bills = mapped.filter((b) => !b.fact.proposal.proposedAt || b.fact.proposal.proposedAt >= since);
+    note("info", `의안 ${mapped.length}건 중 최근 ${WINDOW_DAYS}일 ${bills.length}건 채택`);
+    if (rows[0]) note("info", `의안 응답 필드: ${Object.keys(rows[0]).join(", ")}`);
   } catch (e) {
     note("error", `의안 수집 실패: ${e.message}`);
   }
 
   // ── 3. 본회의 표결정보 ─────────────────────────────────
+  // 이 서비스는 의안 단위 조회를 요구하는 경우가 있어, 일괄 조회가 막히면 의안별로 돈다.
   let voteMap = new Map();
   try {
-    const rows = await fetchAll(SERVICES.votes, { pSize: 300, maxPages: 20, params: { AGE } });
+    const { rows, params } = await fetchAllTrying(
+      SERVICES.votes,
+      [{ AGE }, { AGE, ORD: AGE }, {}],
+      { pSize: 300, maxPages: 20 },
+    );
+    note("info", `표결 API 파라미터: ${JSON.stringify(params)}`);
     voteMap = mapVotes(rows);
+    if (rows[0]) note("info", `표결 응답 필드: ${Object.keys(rows[0]).join(", ")}`);
     note("info", `표결 기록 ${voteMap.size}건 수집`);
   } catch (e) {
-    note("warn", `표결 수집 실패: ${e.message}`);
+    note("warn", `표결 일괄 수집 실패, 의안별 조회로 전환: ${e.message}`);
+    voteMap = await fetchVotesPerBill(bills);
   }
 
   // ── 4. 공포·시행 (국가법령정보센터) ────────────────────
@@ -217,6 +229,36 @@ async function main() {
   await writeSyncLog({ startedAt, status: bills.length > 0 ? "ok" : "empty" });
 
   note("info", `동기화 완료 — 의안 ${bills.length} / 의원 ${legislators.length}`);
+}
+
+/**
+ * 표결 서비스가 의안 단위 조회만 허용할 때의 경로.
+ * 본회의 의결 기록이 있는 의안만 골라 순차 조회한다(동시 호출로 차단당하지 않도록).
+ */
+async function fetchVotesPerBill(bills) {
+  const targets = bills.filter((b) => b.fact.events.some((e) => e.label.includes("본회의")));
+  const limit = Number(process.env.SYNC_VOTE_LOOKUP_LIMIT ?? 120);
+  const merged = [];
+  let failed = 0;
+
+  for (const bill of targets.slice(0, limit)) {
+    try {
+      const rows = await fetchAll(SERVICES.votes, {
+        pSize: 300,
+        maxPages: 3,
+        params: { BILL_ID: bill.officialKeys.billId, AGE },
+      });
+      merged.push(...rows);
+    } catch {
+      failed += 1;
+    }
+  }
+
+  note(
+    failed === targets.length && targets.length > 0 ? "error" : "info",
+    `의안별 표결 조회 ${targets.length}건 대상 / 실패 ${failed}건`,
+  );
+  return mapVotes(merged);
 }
 
 function deriveStatus(bill, today) {
