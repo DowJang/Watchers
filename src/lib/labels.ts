@@ -1,4 +1,4 @@
-import type { BillStatus, ConflictLevel, CourtStatus, VoteChoice } from "./types";
+import type { BillStatus, CourtStatus, VoteChoice } from "./types";
 
 /** 제작서 §4 — 현재 상태 표기 */
 export const statusLabel: Record<BillStatus, string> = {
@@ -22,74 +22,10 @@ export const statusOrder: BillStatus[] = [
   "DISCARDED",
 ];
 
-/** 제작서 §7 — 헌법 충돌 표시등급 */
-export const conflictMeta: Record<
-  ConflictLevel,
-  { dot: string; label: string; short: string; cssVar: string; desc: string }
-> = {
-  VOID: {
-    dot: "🔴",
-    label: "위헌 확정",
-    short: "위헌",
-    cssVar: "var(--color-lv-void)",
-    desc: "헌법재판소가 위헌으로 결정한 법률입니다.",
-  },
-  INCOMPATIBLE: {
-    dot: "🔵",
-    label: "헌법불합치 등",
-    short: "불합치",
-    cssVar: "var(--color-lv-incompat)",
-    desc: "헌법재판소가 위헌성을 인정했으나 즉시 효력상실과는 다른 결정을 한 경우입니다.",
-  },
-  HIGH: {
-    dot: "🟠",
-    label: "헌법 직접충돌 검토 HIGH",
-    short: "HIGH",
-    cssVar: "var(--color-lv-high)",
-    desc: "헌법 조항과 직접 충돌할 소지가 크다고 감시자들이 검토한 법안입니다.",
-  },
-  MEDIUM: {
-    dot: "🟡",
-    label: "중대한 헌법쟁점 MEDIUM",
-    short: "MEDIUM",
-    cssVar: "var(--color-lv-medium)",
-    desc: "중대한 헌법쟁점이 있다고 감시자들이 검토한 법안입니다.",
-  },
-  LOW: {
-    dot: "⚪",
-    label: "헌법쟁점 LOW",
-    short: "LOW",
-    cssVar: "var(--color-lv-low)",
-    desc: "헌법쟁점이 있으나 충돌 소지가 낮다고 감시자들이 검토한 법안입니다.",
-  },
-  PENDING: {
-    dot: "⚫",
-    label: "헌법 분석 준비 중",
-    short: "분석 대기",
-    cssVar: "var(--text-3)",
-    desc: "공식 기록은 수집했으나 헌법 분석이 아직 작성되지 않았습니다. 등급을 자동으로 매기지 않습니다.",
-  },
-};
-
-export const conflictOrder: ConflictLevel[] = [
-  "VOID",
-  "INCOMPATIBLE",
-  "HIGH",
-  "MEDIUM",
-  "LOW",
-  "PENDING",
-];
-
-/** 헌재 판단 전에는 반드시 함께 표시한다 (제작서 §7) */
-export const NOT_CONFIRMED_NOTICE = "헌법재판소에 의해 위헌으로 확정된 법률은 아닙니다.";
-
-export function needsNotConfirmedNotice(level: ConflictLevel, court: CourtStatus): boolean {
-  if (court === "UNCONSTITUTIONAL") return false;
-  if (level === "PENDING") return false; // 등급 자체를 부여하지 않은 상태
-  return level === "HIGH" || level === "MEDIUM" || level === "LOW" || court === "NONE";
-}
-
-/** 제작서 §4 — 법적 상태 */
+/**
+ * 법적 상태(헌재 판단) 표시.
+ * 이 사이트가 표시하는 "위헌 여부"는 이 값 하나뿐이다 — 감시자들 자체의 등급·논거는 없다.
+ */
 export const courtLabel: Record<CourtStatus, string> = {
   NONE: "헌재 판단 없음",
   PENDING: "헌재 심리 중",
@@ -98,6 +34,22 @@ export const courtLabel: Record<CourtStatus, string> = {
   NONCONFORMING: "헌법불합치",
   LIMITED_UNCONSTITUTIONAL: "한정위헌",
 };
+
+export const courtStatusOrder: CourtStatus[] = [
+  "UNCONSTITUTIONAL",
+  "NONCONFORMING",
+  "LIMITED_UNCONSTITUTIONAL",
+  "PENDING",
+  "CONSTITUTIONAL",
+  "NONE",
+];
+
+/** 최종 확정이 아닌 상태에서 함께 표시한다 — 헌재가 아직 확정하지 않았음을 분명히 한다. */
+export const NOT_CONFIRMED_NOTICE = "헌법재판소에 의해 위헌으로 확정된 법률은 아닙니다.";
+
+export function needsNotConfirmedNotice(court: CourtStatus): boolean {
+  return court !== "UNCONSTITUTIONAL" && court !== "NONE";
+}
 
 /** 제작서 §5.5 — 표결 4분류. 불참은 반대로 계산하지 않는다. */
 export const voteMeta: Record<VoteChoice, { label: string; color: string; note?: string }> = {

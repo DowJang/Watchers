@@ -17,15 +17,7 @@ import syncLogJson from "@/data/official/sync-log.json";
 import { bills as sampleBills } from "@/data/bills";
 import { legislators as sampleLegislators, parties as sampleParties } from "@/data/people";
 
-import type {
-  Bill,
-  BillAnalysis,
-  CitizenVoteTally,
-  DataOrigin,
-  Legislator,
-  Party,
-  SiteMeta,
-} from "./types";
+import type { Bill, CitizenVoteTally, DataOrigin, Legislator, Party, PlainSummary, SiteMeta } from "./types";
 
 /* ────────────────────────────────────────────────────────────
    출처 판정
@@ -116,32 +108,23 @@ export function groupByParty(ids: string[]): Array<{ party: Party; members: Legi
 }
 
 /* ────────────────────────────────────────────────────────────
-   분석 미작성 상태
+   쉬운 요약 미작성 상태
    ──────────────────────────────────────────────────────────── */
 
 /**
- * 헌법 분석이 아직 없는 법안을 화면에 그릴 때 쓰는 자리표시자.
- * 문구는 전부 "아직 없다"는 사실만 말하고, 내용을 지어내지 않는다.
+ * 쉬운 요약이 아직 없는 법안을 화면에 그릴 때 쓰는 자리표시자.
+ * 헌법 판단을 담지 않는다 — 위헌 여부는 항상 fact.courtStatus 만 본다.
  */
-export const PENDING_ANALYSIS: BillAnalysis = {
+export const PENDING_SUMMARY: PlainSummary = {
   whatItIs: "쉬운 요약을 아직 작성하지 않았습니다. 아래 공식 기록으로 먼저 확인해 주십시오.",
   whyMade: "공식 제안이유를 확인하는 중입니다.",
-  coreIssue: "헌법쟁점 검토가 아직 끝나지 않아 충돌등급을 부여하지 않았습니다.",
-  keywords: [],
-  conflictLevel: "PENDING",
-  articleIds: [],
-  principleIds: [],
-  argumentsAgainst: [],
-  argumentsFor: [],
-  cases: [],
-  reviewedAt: "",
 };
 
-/** 분석이 없으면 자리표시자를 돌려준다. 화면은 항상 이 함수를 거친다. */
-export function analysisOf(bill: Bill): BillAnalysis {
-  return bill.analysis ?? PENDING_ANALYSIS;
+/** 요약이 없으면 자리표시자를 돌려준다. 화면은 항상 이 함수를 거친다. */
+export function summaryOf(bill: Bill): PlainSummary {
+  return bill.summary ?? PENDING_SUMMARY;
 }
 
-export function isAnalysisPending(bill: Bill): boolean {
-  return bill.analysis === null;
+export function isSummaryPending(bill: Bill): boolean {
+  return bill.summary === null;
 }

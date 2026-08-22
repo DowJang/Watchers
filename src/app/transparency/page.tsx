@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { FactZone, AnalysisZone, OpinionZone } from "@/components/Zone";
-import { conflictMeta, conflictOrder, TRIGGER_THRESHOLD } from "@/lib/labels";
-import { ConflictBadge } from "@/components/Badges";
+import { FactZone, OpinionZone } from "@/components/Zone";
+import { TRIGGER_THRESHOLD } from "@/lib/labels";
 import { SITE, siteMeta } from "@/lib/site";
 import { dt, n } from "@/lib/format";
 
@@ -117,37 +116,24 @@ export default function TransparencyPage() {
           </dl>
         </FactZone>
 
-        {/* 분석 기준 */}
-        <AnalysisZone title="쉬운 요약과 헌법충돌 분석 기준">
-          <ol className="space-y-2 text-[0.9375rem] leading-relaxed">
-            <li>
-              <strong className="font-bold">1. 무슨 법인가</strong> — 법률용어를 제거한 1~2줄 요약을 만듭니다.
-              평가를 섞지 않습니다.
-            </li>
-            <li>
-              <strong className="font-bold">2. 왜 만들었나</strong> — 「제안이유 및 주요내용」, 위원회
-              검토보고서, 공식 회의록, 정부 제출안의 공식 제안이유 등 공식 문서에 적힌 이유만 사용합니다.
-              발의 동기를 추측하지 않습니다.
-            </li>
-            <li>
-              <strong className="font-bold">3. VS 헌법</strong> — 관련 헌법조항 원문과 헌법상 원칙을 대조하고,
-              위헌 측 논거와 합헌 측 논거를 같은 비중으로 제시합니다.
-            </li>
-            <li>
-              <strong className="font-bold">4. 충돌등급</strong> — 아래 5단계로 표시합니다. 헌법재판소가
-              판단하기 전에는 “위헌 확정”이라고 표현하지 않습니다.
-            </li>
-          </ol>
-
-          <ul className="mt-3 space-y-2">
-            {conflictOrder.map((lv) => (
-              <li key={lv} className="flex flex-wrap items-center gap-2">
-                <ConflictBadge level={lv} full size="sm" />
-                <span className="text-[0.875rem] text-dim">{conflictMeta[lv].desc}</span>
-              </li>
-            ))}
-          </ul>
-        </AnalysisZone>
+        {/* 위헌 여부 판단 기준 — 감시자들은 판단하지 않는다 */}
+        <FactZone title="위헌 여부는 어떻게 판단합니까">
+          <p className="text-[0.9375rem] font-bold leading-relaxed" style={{ color: "var(--color-lv-void)" }}>
+            {SITE.name}은 법안의 위헌 여부에 대해 자체적인 판단·등급·논거를 만들지 않습니다.
+          </p>
+          <p className="mt-2 text-[0.9375rem] leading-relaxed">
+            위헌 여부는 오직 <strong className="font-bold">헌법재판소의 공식 결정</strong>만을
+            근거로 표시합니다 — 위헌, 헌법불합치, 한정위헌, 합헌, 심리 중, 또는 헌재 판단 없음.
+            헌법재판소가 아직 판단하지 않은 법안에 대해 "위헌 소지가 크다/작다" 같은 자체 등급을
+            매기거나, 위헌 측·합헌 측 논거를 작성해 제시하지 않습니다. 특정 법안이 어떤 헌법
+            조항과 관련되는지에 대한 감시자들의 해석도 제공하지 않습니다.
+          </p>
+          <p className="mt-2 text-[0.9375rem] leading-relaxed text-dim">
+            공식 기록을 근거로 그 법안이 무엇인지, 왜 만들어졌는지를 평가 없이 쉬운 말로 옮긴
+            "쉬운 요약"은 제공합니다. 이는 헌법 판단이 아니며 다른 색·표시로 FACT 와 구분해
+            보여드립니다.
+          </p>
+        </FactZone>
 
         {/* 투표 집계 */}
         <OpinionZone title="투표 집계와 중복투표 방지 원칙">
@@ -216,6 +202,7 @@ export default function TransparencyPage() {
               "방문자 의견으로 헌법적 결론 확정",
               "법적 자격 없는 사람 명의로 헌재 청구",
               "AI가 공식 FACT를 추측하여 생성",
+              "위헌 여부에 대한 자체 등급·논거 작성",
             ].map((x) => (
               <li key={x} className="flex gap-2">
                 <span aria-hidden style={{ color: "var(--color-lv-void)" }}>

@@ -1,59 +1,50 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Bill, BillStatus, ConflictLevel } from "@/lib/types";
-import { conflictMeta, conflictOrder, statusLabel, statusOrder } from "@/lib/labels";
+import type { Bill, BillStatus, CourtStatus } from "@/lib/types";
+import { courtLabel, courtStatusOrder, statusLabel, statusOrder } from "@/lib/labels";
 import { BillCard } from "./BillCard";
-import { analysisOf, getLegislator, getParty } from "@/lib/repo";
+import { getLegislator, getParty, summaryOf } from "@/lib/repo";
 
-type Sort = "gravity" | "recent" | "opinion";
+type Sort = "court" | "recent" | "opinion";
 
 const sortLabel: Record<Sort, string> = {
-  gravity: "충돌등급 높은 순",
+  court: "헌재 결정 있는 순",
   recent: "최근 발의 순",
   opinion: "시민의견 격차 순",
 };
 
-const levelRank = new Map(conflictOrder.map((l, i) => [l, i]));
+const courtRank = new Map(courtStatusOrder.map((s, i) => [s, i]));
 
 export function BillBrowser({ bills }: { bills: Bill[] }) {
   const [q, setQ] = useState("");
-  const [level, setLevel] = useState<ConflictLevel | "ALL">("ALL");
+  const [court, setCourt] = useState<CourtStatus | "ALL">("ALL");
   const [status, setStatus] = useState<BillStatus | "ALL">("ALL");
-  const [sort, setSort] = useState<Sort>("gravity");
+  const [sort, setSort] = useState<Sort>("court");
 
   /**
    * 정적 사이트이므로 초기 필터는 브라우저에서 쿼리스트링을 읽어 적용한다.
-   * 예: /bills/?level=HIGH  (홈 화면의 "전체 보기" 링크)
+   * 예: /bills/?court=UNCONSTITUTIONAL  (홈 화면의 "전체 보기" 링크)
    */
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
-    const lv = sp.get("level");
+    const ct = sp.get("court");
     const st = sp.get("status");
     const so = sp.get("sort");
-    if (lv && (conflictOrder as string[]).includes(lv)) setLevel(lv as ConflictLevel);
+    if (ct && (courtStatusOrder as string[]).includes(ct)) setCourt(ct as CourtStatus);
     if (st && (statusOrder as string[]).includes(st)) setStatus(st as BillStatus);
-    if (so === "recent" || so === "opinion" || so === "gravity") setSort(so);
+    if (so === "recent" || so === "opinion" || so === "court") setSort(so);
   }, []);
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
     let out = bills.filter((b) => {
-      if (level !== "ALL" && analysisOf(b).conflictLevel !== level) return false;
+      if (court !== "ALL" && b.fact.courtStatus !== court) return false;
       if (status !== "ALL" && b.fact.status !== status) return false;
       if (!needle) return true;
       const sponsor = b.fact.proposal.sponsorId ? getLegislator(b.fact.proposal.sponsorId) : undefined;
       const party = sponsor ? getParty(sponsor.partyId).name : "";
-      const hay = [
-        b.fact.title,
-        b.fact.billNo,
-        b.fact.committee,
-        analysisOf(b).whatItIs,
-        analysisOf(b).coreIssue,
-        ...analysisOf(b).keywords,
-        sponsor?.name ?? "",
-        party,
-      ]
+      const hay = [b.fact.title, b.fact.billNo, b.fact.committee, summaryOf(b).whatItIs, sponsor?.name ?? "", party]
         .join(" ")
         .toLowerCase();
       return hay.includes(needle);
@@ -66,16 +57,16 @@ export function BillBrowser({ bills }: { bills: Bill[] }) {
         const gb = b.opinion.unfit - b.opinion.fit;
         return gb - ga;
       }
-      const la = levelRank.get(analysisOf(a).conflictLevel) ?? 99;
-      const lb = levelRank.get(analysisOf(b).conflictLevel) ?? 99;
+      const la = courtRank.get(a.fact.courtStatus) ?? 99;
+      const lb = courtRank.get(b.fact.courtStatus) ?? 99;
       if (la !== lb) return la - lb;
       return b.fact.proposal.proposedAt.localeCompare(a.fact.proposal.proposedAt);
     });
 
     return out;
-  }, [bills, q, level, status, sort]);
+  }, [bills, q, court, status, sort]);
 
-  const filtered = level !== "ALL" || status !== "ALL" || q.trim().length > 0;
+  const filtered = court !== "ALL" || status !== "ALL" || q.trim().length > 0;
 
   return (
     <>
@@ -98,7 +89,7 @@ export function BillBrowser({ bills }: { bills: Bill[] }) {
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="법안명, 의안번호, 발의자, 키워드 검색"
+          placeholder="법안명, 의안번호, 발의자 검색"
           aria-label="법안 검색"
           className="surface w-full rounded-xl py-3 pl-10 pr-3 text-[0.9375rem] outline-none"
           style={{ borderColor: "var(--border-strong)" }}
@@ -106,13 +97,13 @@ export function BillBrowser({ bills }: { bills: Bill[] }) {
       </div>
 
       {/* 필터: 모바일에서는 가로 스크롤 칩 */}
-      <FilterRow label="충돌등급">
-        <Chip active={level === "ALL"} onClick={() => setLevel("ALL")}>
+      <FilterRow label="헌재 판단">
+        <Chip active={court === "ALL"} onClick={() => setCourt("ALL")}>
           전체
         </Chip>
-        {conflictOrder.map((lv) => (
-          <Chip key={lv} active={level === lv} onClick={() => setLevel(lv)} color={conflictMeta[lv].cssVar}>
-            {conflictMeta[lv].short}
+        {courtStatusOrder.map((c) => (
+          <Chip key={c} active={court === c} onClick={() => setCourt(c)}>
+            {courtLabel[c]}
           </Chip>
         ))}
       </FilterRow>
@@ -145,7 +136,7 @@ export function BillBrowser({ bills }: { bills: Bill[] }) {
             type="button"
             onClick={() => {
               setQ("");
-              setLevel("ALL");
+              setCourt("ALL");
               setStatus("ALL");
             }}
             className="text-[0.8125rem] font-bold underline"
@@ -186,12 +177,10 @@ function Chip({
   active,
   onClick,
   children,
-  color,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-  color?: string;
 }) {
   return (
     <button
@@ -201,11 +190,7 @@ function Chip({
       className="shrink-0 rounded-full border px-3 py-1.5 text-[0.8125rem] font-bold transition-colors"
       style={
         active
-          ? {
-              background: color ?? "var(--color-fact)",
-              borderColor: color ?? "var(--color-fact)",
-              color: "#fff",
-            }
+          ? { background: "var(--color-fact)", borderColor: "var(--color-fact)", color: "#fff" }
           : { background: "var(--surface)", borderColor: "var(--border-strong)", color: "var(--text-2)" }
       }
     >

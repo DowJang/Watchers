@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { articles, getArticle } from "@/data/constitution";
-import { billsByArticle } from "@/lib/site";
-import { BillCard } from "@/components/BillCard";
-import { FactZone, AnalysisZone } from "@/components/Zone";
-import { n } from "@/lib/format";
+import { FactZone } from "@/components/Zone";
 
 type Params = Promise<{ id: string }>;
 
@@ -25,8 +22,6 @@ export default async function ArticlePage({ params }: { params: Params }) {
   const a = getArticle(id);
   if (!a) notFound();
 
-  const related = billsByArticle(a.id);
-
   return (
     <>
       <nav className="pt-2 text-[0.8125rem] font-semibold text-faint">
@@ -45,26 +40,18 @@ export default async function ArticlePage({ params }: { params: Params }) {
           <blockquote className="quote-const text-[1.0625rem] leading-relaxed">{a.text}</blockquote>
         </FactZone>
 
-        <AnalysisZone title="쉬운 설명">
+        <FactZone title="쉬운 설명" note="평가나 특정 법안과의 충돌 판단을 담지 않은 일반적 설명입니다.">
           <p className="text-[1rem] leading-relaxed">{a.plain}</p>
-        </AnalysisZone>
+        </FactZone>
 
-        <section>
-          <h2 className="mb-3 text-lg font-extrabold tracking-tight md:text-xl">
-            이 조항과 맞닿은 법안 {n(related.length)}건
-          </h2>
-          {related.length === 0 ? (
-            <p className="surface rounded-2xl p-8 text-center text-sm text-dim">
-              현재 이 조항과 연결된 법안이 없습니다.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {related.map((b) => (
-                <BillCard key={b.id} bill={b} />
-              ))}
-            </div>
-          )}
-        </section>
+        <p className="text-[0.8125rem] leading-relaxed text-dim">
+          특정 법안이 이 조항과 어떤 관계에 있는지에 대한 감시자들의 판단은 제공하지 않습니다. 각
+          법안이 위헌인지 여부는{" "}
+          <Link href="/bills" className="font-bold underline">
+            법안 목록
+          </Link>
+          에서 헌법재판소의 공식 결정만으로 확인하실 수 있습니다.
+        </p>
       </div>
     </>
   );

@@ -10,8 +10,10 @@
  *
  * 원칙
  *  - 공식 응답에 없는 값은 만들어 넣지 않는다. 없으면 비워 두고 화면에서 "확인 필요"로 표시한다.
- *  - 쉬운 요약 / 헌법쟁점(ANALYSIS)은 자동 생성하지 않는다. 사람이 작성해 analysis 오버라이드에
- *    넣기 전까지 해당 법안은 "분석 준비 중"으로 표시된다.
+ *  - 쉬운 요약(whatItIs/whyMade)은 자동 생성하지 않는다. 사람이 작성해 summaries 오버라이드에
+ *    넣기 전까지 해당 법안은 "쉬운 요약 준비 중"으로 표시된다.
+ *  - 위헌 여부에 대한 판단·등급·논거는 만들지 않는다. 이 사이트가 표시하는 유일한 헌법 판단은
+ *    공식 응답의 courtStatus/courtCaseNo 뿐이다.
  *  - 인증키가 없으면 아무것도 덮어쓰지 않고 종료한다(기존 예시 데이터 유지).
  */
 
@@ -25,7 +27,7 @@ import { mapBill, mapLegislator, mapVotes, slug, toIsoDate } from "./lib/map.mjs
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = join(ROOT, "src", "data", "official");
-const ANALYSIS_DIR = join(ROOT, "src", "data", "analysis");
+const SUMMARIES_DIR = join(ROOT, "src", "data", "summaries");
 
 /**
  * 수집 범위 — 최근 N일 이내 발의된 의안.
@@ -222,19 +224,20 @@ async function main() {
     delete bill.fact.proposal.coSponsorNames;
   }
 
-  // ── 6. 사람이 작성한 ANALYSIS 병합 ─────────────────────
-  const analysisIndex = await readJsonIfExists(join(ANALYSIS_DIR, "index.json"), {});
-  let analyzed = 0;
+  // ── 6. 사람이 작성한 쉬운 요약 병합 ─────────────────────
+  // 위헌 여부·등급·논거는 여기서 다루지 않는다 — 그런 값 자체를 허용하지 않는다(§ summaries/README).
+  const summaryIndex = await readJsonIfExists(join(SUMMARIES_DIR, "index.json"), {});
+  let summarized = 0;
   for (const bill of bills) {
-    const a = analysisIndex[bill.id] ?? analysisIndex[bill.officialKeys.billNo];
-    if (a) {
-      bill.analysis = a;
-      analyzed += 1;
+    const s = summaryIndex[bill.id] ?? summaryIndex[bill.officialKeys.billNo];
+    if (s) {
+      bill.summary = { whatItIs: s.whatItIs, whyMade: s.whyMade };
+      summarized += 1;
     } else {
-      bill.analysis = null; // 화면에서 "헌법 분석 준비 중"으로 표시
+      bill.summary = null; // 화면에서 "쉬운 요약 준비 중"으로 표시
     }
   }
-  note("info", `헌법 분석 연결 ${analyzed}건 / 미작성 ${bills.length - analyzed}건`);
+  note("info", `쉬운 요약 연결 ${summarized}건 / 미작성 ${bills.length - summarized}건`);
 
   // ── 7. 저장 ────────────────────────────────────────────
   await writeJson("legislators.json", { syncedAt: startedAt, parties, legislators });

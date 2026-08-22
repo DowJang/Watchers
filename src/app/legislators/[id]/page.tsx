@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { legislators, getLegislator, getParty, analysisOf } from "@/lib/repo";
+import { legislators, getLegislator, getParty } from "@/lib/repo";
 import { billsByLegislator } from "@/lib/site";
 import { FactZone } from "@/components/Zone";
-import { ConflictBadge, SourceLink, StatusPill } from "@/components/Badges";
+import { CourtPill, SourceLink, StatusPill } from "@/components/Badges";
 import { voteMeta } from "@/lib/labels";
 import { d, n } from "@/lib/format";
 import type { Bill, VoteChoice } from "@/lib/types";
@@ -133,8 +133,8 @@ function BillListZone({ title, bills }: { title: string; bills: Bill[] }) {
             <li key={b.id} className="py-2.5 first:pt-0 last:pb-0">
               <Link href={`/bills/${b.id}`} className="block">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <ConflictBadge level={analysisOf(b).conflictLevel} size="sm" />
                   <StatusPill status={b.fact.status} />
+                  {b.fact.courtStatus !== "NONE" ? <CourtPill status={b.fact.courtStatus} /> : null}
                   <span className="text-[0.75rem] text-faint tabular-nums">
                     {d(b.fact.proposal.proposedAt)}
                   </span>

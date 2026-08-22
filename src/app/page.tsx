@@ -1,20 +1,11 @@
 import Link from "next/link";
 import { BillCard } from "@/components/BillCard";
 import { CardGrid, Section } from "@/components/Section";
-import { ConflictBadge } from "@/components/Badges";
+import { CourtPill } from "@/components/Badges";
 import { OpinionZone } from "@/components/Zone";
-import { conflictOrder, conflictMeta, TRIGGER_THRESHOLD } from "@/lib/labels";
+import { TRIGGER_THRESHOLD } from "@/lib/labels";
 import { n, signed } from "@/lib/format";
-import {
-  SITE,
-  gap,
-  inForceBills,
-  isTriggered,
-  keyConflictBills,
-  newBills,
-  siteMeta,
-  topOpinionBills,
-} from "@/lib/site";
+import { SITE, courtRuledBills, gap, inForceBills, isTriggered, newBills, siteMeta, topOpinionBills } from "@/lib/site";
 
 export default function HomePage() {
   const t = siteMeta.today;
@@ -37,8 +28,8 @@ export default function HomePage() {
           <span style={{ color: "var(--fact-fg)" }}>헌법과 어디에서 충돌하는가.</span>
         </h1>
         <p className="mt-3 max-w-prose text-[0.9375rem] leading-relaxed text-dim md:text-base">
-          {SITE.description} 법을 잘 모르는 사람도 1분 안에 무엇이 문제인지 이해하고, 공식 원문을 직접
-          확인하고, 자신의 의견을 남길 수 있도록 만들었습니다.
+          {SITE.description} 위헌 여부는 헌법재판소의 공식 결정만 다루며, 감시자들 자체의 헌법적
+          판단이나 논거는 제공하지 않습니다.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
@@ -58,7 +49,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── 오늘의 입법 (§25) ── */}
+      {/* ── 오늘의 입법 ── */}
       <Section title="오늘의 입법" desc="전일 대비 국가기관 공식기록 변경">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {changes.map(([label, value]) => (
@@ -79,32 +70,22 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* ── 헌법충돌 주요 법안 ── */}
+      {/* ── 헌법재판소 판단이 있는 법안 ── */}
       <Section
-        title="헌법충돌 주요 법안"
-        desc="감시자들이 헌법과의 충돌 소지를 높게 검토한 법안입니다."
-        more="/bills/?level=HIGH"
+        title="헌법재판소 판단이 있는 법안"
+        desc="위헌·헌법불합치·한정위헌·심리 중 등 공식 결정이 있는 법안입니다."
+        more="/bills/?sort=court"
       >
         <CardGrid>
-          {keyConflictBills(3).map((b) => (
+          {courtRuledBills(3).map((b) => (
             <BillCard key={b.id} bill={b} />
           ))}
         </CardGrid>
-        <p className="mt-3 text-xs text-faint">
-          충돌등급은 감시자들의 분석(ANALYSIS)이며, 헌법재판소의 결정이 아닙니다.
-        </p>
-      </Section>
-
-      {/* ── 등급 범례 (§7) ── */}
-      <Section title="헌법 충돌 표시등급">
-        <ul className="surface grid grid-cols-1 gap-0 rounded-2xl md:grid-cols-2">
-          {conflictOrder.map((lv) => (
-            <li key={lv} className="flex gap-3 border-b p-3 last:border-b-0 md:[&:nth-last-child(2)]:border-b-0">
-              <ConflictBadge level={lv} full size="sm" />
-              <p className="text-[0.8125rem] leading-relaxed text-dim">{conflictMeta[lv].desc}</p>
-            </li>
-          ))}
-        </ul>
+        {courtRuledBills(1).length === 0 ? (
+          <p className="surface rounded-2xl p-6 text-center text-sm text-dim">
+            현재 헌법재판소 판단이 있는 법안이 없습니다.
+          </p>
+        ) : null}
       </Section>
 
       {/* ── 신규 법안 ── */}
@@ -125,7 +106,7 @@ export default function HomePage() {
         </CardGrid>
       </Section>
 
-      {/* ── 오늘의 시민의견 (§33) ── */}
+      {/* ── 오늘의 시민의견 ── */}
       <Section title="오늘의 시민의견" desc={SITE.participation}>
         <OpinionZone title="부적합 · 적합 의견 격차">
           <ul className="divide-y" style={{ borderColor: "var(--border)" }}>
@@ -136,7 +117,10 @@ export default function HomePage() {
               return (
                 <li key={b.id} className="py-3 first:pt-0 last:pb-0">
                   <Link href={`/bills/${b.id}`} className="block">
-                    <p className="text-sm font-bold leading-snug">{b.fact.title}</p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="text-sm font-bold leading-snug">{b.fact.title}</p>
+                      {b.fact.courtStatus !== "NONE" ? <CourtPill status={b.fact.courtStatus} /> : null}
+                    </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] tabular-nums">
                       <span style={{ color: "var(--color-lv-void)" }}>부적합 {n(b.opinion.unfit)}</span>
                       <span style={{ color: "#1f8a5b" }}>적합 {n(b.opinion.fit)}</span>

@@ -1,9 +1,14 @@
 import type { ReactNode } from "react";
 
 /**
- * 제작서 §3 — FACT / ANALYSIS / USER OPINION 완전 분리.
+ * FACT / 쉬운 요약 / USER OPINION 완전 분리.
  * 세 영역은 색·테두리·머리표시가 모두 달라야 하며,
- * 사용자가 화면만 보고도 "이건 공식 기록인가, 해석인가, 의견인가"를 구분할 수 있어야 한다.
+ * 사용자가 화면만 보고도 "이건 공식 기록인가, 쉬운 말로 옮긴 것인가, 시민 의견인가"를
+ * 구분할 수 있어야 한다.
+ *
+ * "쉬운 요약"(SummaryZone)은 감시자들의 법률적 의견·판단이 아니다 — 위헌 여부에 대한
+ * 판단은 오직 헌법재판소의 공식 결정(FACT)만 사용하며, 이 사이트는 그 외의 헌법적
+ * 논거·등급을 만들지 않는다.
  */
 
 type Props = {
@@ -35,11 +40,16 @@ export function FactZone({ title, children, note, id, action }: Props) {
   );
 }
 
-export function AnalysisZone({ title, children, note, id, action }: Props) {
+/**
+ * 쉬운 요약 영역.
+ * 공식 기록(법안명·제안이유)을 평가·해석 없이 쉬운 말로 옮긴 것일 뿐,
+ * 헌법적 판단·논거·등급은 담지 않는다. 위헌 여부는 항상 FactZone 의 헌재 결정만 본다.
+ */
+export function SummaryZone({ title, children, note, id, action }: Props) {
   return (
     <section id={id} className="zone zone-analysis">
       <header className="zone-head">
-        <Tag>감시자들 분석 · ANALYSIS</Tag>
+        <Tag>쉬운 요약</Tag>
         <h2 className="text-sm font-bold tracking-normal">{title}</h2>
         {action ? <div className="ml-auto">{action}</div> : null}
       </header>
@@ -52,7 +62,7 @@ export function AnalysisZone({ title, children, note, id, action }: Props) {
           background: "var(--analysis-bg)",
         }}
       >
-        {note ?? "감시자들의 법률적 설명이며, 국가기관의 공식 판단이 아닙니다."}
+        {note ?? "공식 기록을 평가 없이 쉬운 말로 옮긴 것입니다. 헌법 판단이 아닙니다."}
       </p>
     </section>
   );

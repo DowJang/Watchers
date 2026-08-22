@@ -1,16 +1,20 @@
 /**
  * 감시자들 — 도메인 타입
  *
- * 제작서 §3 원칙에 따라 데이터는 세 영역으로 완전히 분리한다.
- *   FACT     : 국가기관 공식 기록에서 확인되는 사실 (추측 생성 금지)
- *   ANALYSIS : 감시자들이 제공하는 법률적 설명
- *   OPINION  : 방문자의 투표·코멘트 (공식 기록 아님)
+ * 데이터는 두 영역으로 완전히 분리한다.
+ *   FACT    : 국가기관 공식 기록에서 확인되는 사실 (추측 생성 금지)
+ *   OPINION : 방문자의 투표·코멘트 (공식 기록 아님)
  *
- * 타입 단계에서 세 영역을 서로 다른 객체로 묶어, UI에서 섞여 렌더링되는
- * 실수를 구조적으로 막는다.
+ * 이 사이트는 법안의 위헌 여부에 대해 감시자들 자체의 의견·논거·등급을 만들지 않는다.
+ * 헌법적 판단은 오직 헌법재판소의 공식 결정(courtStatus, courtCaseNo — 모두 FACT)만
+ * 사용한다. "쉬운 요약"(PlainSummary)은 공식 기록을 평가 없이 쉬운 말로 옮긴 것으로,
+ * FACT 를 대체하지 않는 보조 표시일 뿐 헌법 판단이 아니다.
+ *
+ * 타입 단계에서 영역을 서로 다른 객체로 묶어, UI에서 섞여 렌더링되는 실수를
+ * 구조적으로 막는다.
  */
 
-export type Zone = "FACT" | "ANALYSIS" | "OPINION";
+export type Zone = "FACT" | "OPINION";
 
 /** 데이터 신뢰 상태. 공식 API 연동 전에는 모든 레코드가 SAMPLE 이다. */
 export type DataOrigin = "OFFICIAL" | "SAMPLE";
@@ -25,21 +29,10 @@ export type BillStatus =
   | "IN_FORCE" // 시행 중
   | "DISCARDED"; // 폐기
 
-/** 제작서 §7 — 헌법 충돌 표시등급 */
-export type ConflictLevel =
-  | "VOID" // 🔴 위헌 확정 (헌재 위헌 결정)
-  | "INCOMPATIBLE" // 🔵 헌법불합치 등
-  | "HIGH" // 🟠 헌법 직접충돌 검토 HIGH
-  | "MEDIUM" // 🟡 중대한 헌법쟁점 MEDIUM
-  | "LOW" // ⚪ 헌법쟁점 LOW
-  /**
-   * ⚫ 등급 미부여.
-   * 공식 API 로 FACT 만 수집되고 사람이 작성한 헌법 분석이 아직 없는 상태.
-   * 등급을 자동으로 매기지 않기 위해 별도 상태로 둔다(§3.B, §30).
-   */
-  | "PENDING";
-
-/** 제작서 §4 — 법적 상태 (헌재 판단) */
+/**
+ * 법적 상태 (헌재 판단).
+ * 이 값이 이 사이트가 표시하는 유일한 "위헌 여부" 신호다 — 감시자들 자체의 등급·판단은 없다.
+ */
 export type CourtStatus =
   | "NONE" // 헌재 판단 없음
   | "PENDING" // 심리 중
@@ -161,16 +154,10 @@ export interface ConstitutionArticle {
   plain: string; // 쉬운 설명
 }
 
-/** 헌재 결정 / 대법원 판례 */
-export interface CaseRef {
-  court: "헌법재판소" | "대법원";
-  caseNo: string;
-  title: string;
-  summary: string;
-  url?: string;
-}
-
-/** 헌법상 원칙 (명확성원칙, 과잉금지원칙 등) */
+/**
+ * 헌법상 일반 개념(명확성원칙, 과잉금지원칙 등)에 대한 사전적 설명.
+ * 특정 법안과 연결하지 않는다 — /constitution 페이지의 일반 참고자료로만 쓴다.
+ */
 export interface Principle {
   id: string;
   term: string;
@@ -178,29 +165,15 @@ export interface Principle {
 }
 
 /**
- * ANALYSIS 영역 — 감시자들의 법률적 설명.
- * 헌재 판단 전에는 어떤 필드도 "위헌 확정"을 의미하지 않는다(§3.B).
+ * 쉬운 요약 — 공식 기록(법안명, 제안이유)을 평가·판단 없이 쉬운 말로 옮긴 것.
+ * 헌법 판단이 아니며, 위헌 여부·충돌 정도에 대한 어떤 등급도 담지 않는다.
+ * 사람이 작성하기 전까지 해당 법안은 이 필드가 없다(null) — 자동 생성하지 않는다.
  */
-export interface BillAnalysis {
-  /** §2.1 무슨 법인가 — 1~2줄, 평가를 섞지 않는다 */
+export interface PlainSummary {
+  /** 무슨 법인가 — 1~2줄, 평가를 섞지 않는다 */
   whatItIs: string;
-  /** §5.1 왜 만들었나 — 공식 제안이유를 쉬운 말로 */
+  /** 왜 만들었나 — 공식 제안이유를 쉬운 말로 옮긴 것 (판단·해석 추가 금지) */
   whyMade: string;
-  /** §5.1 핵심 헌법쟁점 — 1~2줄 */
-  coreIssue: string;
-  keywords: string[];
-  conflictLevel: ConflictLevel;
-  /** 관련 헌법조항 id */
-  articleIds: string[];
-  /** 핵심 충돌 지점 (원칙 id) */
-  principleIds: string[];
-  /** §6.3 위헌 측 논거 */
-  argumentsAgainst: string[];
-  /** §6.4 합헌 측 논거 */
-  argumentsFor: string[];
-  cases: CaseRef[];
-  /** 분석 최종 검토일 */
-  reviewedAt: string;
 }
 
 /** OPINION 영역 — 시민 헌법의견투표 집계 (공식 기록 아님) */
@@ -233,11 +206,8 @@ export interface Bill {
   id: string; // URL slug
   origin: DataOrigin;
   fact: BillFact;
-  /**
-   * 사람이 작성하기 전에는 null 이다.
-   * null 인 법안은 "헌법 분석 준비 중"으로 표시하고 충돌등급을 부여하지 않는다.
-   */
-  analysis: BillAnalysis | null;
+  /** 사람이 작성하기 전에는 null. 없으면 화면은 공식 기록만으로 표시한다. */
+  summary: PlainSummary | null;
   opinion: CitizenVoteTally;
 }
 

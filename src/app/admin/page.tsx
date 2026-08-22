@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { Panel, Stat, StatGrid, TableWrap, LiveOnly } from "@/components/admin/ui";
 import { factKpis, healthMeta, systemHealth, todayChanges, voteBoard } from "@/lib/admin";
-import { conflictMeta } from "@/lib/labels";
-import { analysisOf, siteMeta } from "@/lib/repo";
+import { courtLabel } from "@/lib/labels";
+import { siteMeta } from "@/lib/repo";
 import { dt, n, signed } from "@/lib/format";
 
 /** 제작서 §18, §34 — 관리자 메인 */
@@ -24,16 +24,15 @@ export default function AdminDashboard() {
         />
         <Stat label="수집된 법안" value={kpi.totalBills} hint={`출처 ${siteMeta.dataOrigin === "OFFICIAL" ? "공식 기록" : "예시 데이터"}`} />
         <Stat
-          label="헌법 HIGH 이상"
-          value={kpi.highReviewPending}
-          tone={kpi.highReviewPending > 0 ? "warn" : "neutral"}
-          hint="충돌등급 HIGH·불합치·위헌"
+          label="헌재 결정 있음"
+          value={kpi.courtRuled}
+          tone={kpi.courtRuled > 0 ? "warn" : "neutral"}
+          hint="공식 결정 기준 — 감시자들 등급 아님"
         />
         <Stat
-          label="분석 미작성"
-          value={kpi.analysisPending}
-          tone={kpi.analysisPending > 0 ? "warn" : "good"}
-          hint="등급 미부여 상태"
+          label="위헌 결정"
+          value={kpi.unconstitutional}
+          tone={kpi.unconstitutional > 0 ? "alert" : "neutral"}
         />
         <Stat label="Trigger 발생" value={kpi.triggered} tone={kpi.triggered > 0 ? "alert" : "neutral"} />
         <Stat label="1,000표 근접" value={kpi.nearTrigger} tone={kpi.nearTrigger > 0 ? "warn" : "neutral"} hint="200표 이내" />
@@ -101,12 +100,11 @@ export default function AdminDashboard() {
                   <Link href={`/bills/${r.bill.id}`} className="font-semibold">
                     {r.bill.fact.title}
                   </Link>
-                  <span
-                    className="ml-1.5 rounded px-1 py-0.5 text-[0.625rem] font-bold"
-                    style={{ color: conflictMeta[analysisOf(r.bill).conflictLevel].cssVar }}
-                  >
-                    {conflictMeta[analysisOf(r.bill).conflictLevel].short}
-                  </span>
+                  {r.bill.fact.courtStatus !== "NONE" ? (
+                    <span className="ml-1.5 rounded px-1 py-0.5 text-[0.625rem] font-bold text-faint">
+                      {courtLabel[r.bill.fact.courtStatus]}
+                    </span>
+                  ) : null}
                 </td>
                 <td className="py-2 pr-3 text-right tabular-nums">{n(r.unfit)}</td>
                 <td className="py-2 pr-3 text-right tabular-nums">{n(r.fit)}</td>

@@ -1,6 +1,6 @@
 import type { Bill, CitizenComment } from "./types";
-import { TRIGGER_THRESHOLD, conflictOrder } from "./labels";
-import { analysisOf, bills, legislators } from "./repo";
+import { TRIGGER_THRESHOLD, courtStatusOrder } from "./labels";
+import { bills, legislators } from "./repo";
 
 export { siteMeta, dataOrigin, syncRuns } from "./repo";
 
@@ -32,13 +32,13 @@ export function remainingToTrigger(bill: Bill): number {
   return Math.max(0, TRIGGER_THRESHOLD - gap(bill));
 }
 
-const levelRank = new Map(conflictOrder.map((l, i) => [l, i]));
+const courtRank = new Map(courtStatusOrder.map((s, i) => [s, i]));
 
-/** 충돌등급 높은 순 → 최신 발의 순 */
-export function sortByGravity(list: Bill[]): Bill[] {
+/** 헌재 판단이 있는(=주목도 높은) 순 → 최신 발의 순 */
+export function sortByCourtAttention(list: Bill[]): Bill[] {
   return [...list].sort((a, b) => {
-    const la = levelRank.get(analysisOf(a).conflictLevel) ?? 99;
-    const lb = levelRank.get(analysisOf(b).conflictLevel) ?? 99;
+    const la = courtRank.get(a.fact.courtStatus) ?? 99;
+    const lb = courtRank.get(b.fact.courtStatus) ?? 99;
     if (la !== lb) return la - lb;
     return (b.fact.proposal.proposedAt ?? "").localeCompare(a.fact.proposal.proposedAt ?? "");
   });
@@ -58,11 +58,9 @@ export function allLegislators() {
   return legislators;
 }
 
-/** HOME — 헌법충돌 주요 법안 */
-export function keyConflictBills(limit = 3): Bill[] {
-  return sortByGravity(
-    bills.filter((b) => ["VOID", "INCOMPATIBLE", "HIGH"].includes(analysisOf(b).conflictLevel)),
-  ).slice(0, limit);
+/** HOME — 헌법재판소 판단이 있는 법안 */
+export function courtRuledBills(limit = 3): Bill[] {
+  return sortByCourtAttention(bills.filter((b) => b.fact.courtStatus !== "NONE")).slice(0, limit);
 }
 
 /** HOME — 신규 법안 */
@@ -80,11 +78,6 @@ export function inForceBills(limit = 3): Bill[] {
 /** HOME — 오늘의 시민의견 (부적합 격차가 큰 순 = Trigger 에 가까운 순) */
 export function topOpinionBills(limit = 3): Bill[] {
   return [...bills].sort((a, b) => gap(b) - gap(a)).slice(0, limit);
-}
-
-/** 특정 헌법 조항을 다루는 법안 (§33 CONSTITUTION) */
-export function billsByArticle(articleId: string): Bill[] {
-  return sortByGravity(bills.filter((b) => analysisOf(b).articleIds.includes(articleId)));
 }
 
 /** 의원별 발의·표결 기록 (§33 LEGISLATORS) */

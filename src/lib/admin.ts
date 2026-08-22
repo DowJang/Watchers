@@ -1,5 +1,5 @@
 import { TRIGGER_THRESHOLD } from "./labels";
-import { analysisOf, bills, legislators, siteMeta, syncRuns, type SyncRun } from "./repo";
+import { bills, legislators, siteMeta, syncRuns, type SyncRun } from "./repo";
 import { gap } from "./site";
 import type { Bill } from "./types";
 
@@ -63,13 +63,10 @@ export function systemHealth(): HealthItem[] {
           : "ASSEMBLY_API_KEY 를 저장소 Secrets 에 등록하면 공식 기록으로 전환됩니다.",
     },
     {
-      label: "헌법 분석 작성",
-      level: pendingAnalysisCount() === 0 ? "ok" : "warn",
-      value: `${bills.length - pendingAnalysisCount()} / ${bills.length}건`,
-      hint:
-        pendingAnalysisCount() > 0
-          ? `${pendingAnalysisCount()}건이 등급 미부여 상태입니다.`
-          : "모든 법안에 분석이 연결되어 있습니다.",
+      label: "헌법재판소 결정",
+      level: "ok",
+      value: `${bills.filter((b) => b.fact.courtStatus !== "NONE").length}건`,
+      hint: "위헌 여부는 헌재의 공식 결정만 표시합니다. 감시자들 자체의 판단·등급은 없습니다.",
     },
     {
       label: "표결 기록",
@@ -82,10 +79,6 @@ export function systemHealth(): HealthItem[] {
 
 function runStatusLabel(status: SyncRun["status"]): string {
   return { ok: "정상", empty: "수집 0건", skipped: "건너뜀(키 없음)", failed: "실패" }[status];
-}
-
-export function pendingAnalysisCount(): number {
-  return bills.filter((b) => b.analysis === null).length;
 }
 
 /** 제작서 §18.2 — 오늘의 공식 데이터 변경 */
@@ -136,11 +129,8 @@ export function factKpis() {
   return {
     lastSyncedAt: siteMeta.lastSyncedAt,
     totalBills: bills.length,
-    highReviewPending: bills.filter((b) => {
-      const lv = analysisOf(b).conflictLevel;
-      return lv === "HIGH" || lv === "VOID" || lv === "INCOMPATIBLE";
-    }).length,
-    analysisPending: pendingAnalysisCount(),
+    courtRuled: bills.filter((b) => b.fact.courtStatus !== "NONE").length,
+    unconstitutional: bills.filter((b) => b.fact.courtStatus === "UNCONSTITUTIONAL").length,
     triggered: board.filter((r) => r.triggered).length,
     nearTrigger: board.filter((r) => !r.triggered && r.diff > 0 && r.remaining <= 200).length,
   };

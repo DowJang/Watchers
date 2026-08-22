@@ -1,37 +1,5 @@
-import type { BillStatus, ConflictLevel, CourtStatus, OfficialSource } from "@/lib/types";
-import { conflictMeta, courtLabel, statusLabel } from "@/lib/labels";
-
-/** 제작서 §7 — 헌법 충돌 표시등급 배지 */
-export function ConflictBadge({
-  level,
-  full = false,
-  size = "md",
-}: {
-  level: ConflictLevel;
-  full?: boolean;
-  size?: "sm" | "md";
-}) {
-  const m = conflictMeta[level];
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border font-bold ${
-        size === "sm" ? "px-2 py-0.5 text-[0.6875rem]" : "px-2.5 py-1 text-xs"
-      }`}
-      style={{
-        color: m.cssVar,
-        borderColor: `color-mix(in srgb, ${m.cssVar} 45%, transparent)`,
-        background: `color-mix(in srgb, ${m.cssVar} 10%, transparent)`,
-      }}
-    >
-      <span
-        aria-hidden
-        className="inline-block size-2 rounded-full"
-        style={{ background: m.cssVar }}
-      />
-      {full ? m.label : m.short}
-    </span>
-  );
-}
+import type { BillStatus, CourtStatus, OfficialSource } from "@/lib/types";
+import { courtLabel, statusLabel } from "@/lib/labels";
 
 /** 제작서 §4 — 현재 상태 */
 export function StatusPill({ status }: { status: BillStatus }) {
@@ -50,18 +18,43 @@ export function StatusPill({ status }: { status: BillStatus }) {
   );
 }
 
-/** 제작서 §4 — 법적 상태(헌재 판단) */
-export function CourtPill({ status }: { status: CourtStatus }) {
-  const alarm =
-    status === "UNCONSTITUTIONAL" || status === "NONCONFORMING" || status === "LIMITED_UNCONSTITUTIONAL";
+/**
+ * 법적 상태(헌재 판단) 배지.
+ * 이 사이트가 표시하는 유일한 "위헌 여부" 신호 — 감시자들이 매긴 등급이 아니라
+ * 헌법재판소의 공식 결정을 그대로 옮긴 것이다.
+ */
+const courtColor: Record<CourtStatus, string> = {
+  UNCONSTITUTIONAL: "var(--color-lv-void)",
+  NONCONFORMING: "var(--color-lv-incompat)",
+  LIMITED_UNCONSTITUTIONAL: "var(--color-lv-incompat)",
+  PENDING: "var(--color-lv-medium)",
+  CONSTITUTIONAL: "#1f8a5b",
+  NONE: "var(--text-3)",
+};
+
+export function CourtPill({
+  status,
+  size = "sm",
+}: {
+  status: CourtStatus;
+  size?: "sm" | "md";
+}) {
+  const color = courtColor[status];
+  const notable = status !== "NONE";
   return (
     <span
-      className="inline-flex items-center rounded-md border px-2 py-0.5 text-[0.6875rem] font-bold"
+      className={`inline-flex items-center gap-1.5 rounded-full border font-bold ${
+        size === "sm" ? "px-2 py-0.5 text-[0.6875rem]" : "px-2.5 py-1 text-xs"
+      }`}
       style={{
-        color: alarm ? "var(--color-lv-incompat)" : "var(--text-3)",
-        borderColor: alarm ? "color-mix(in srgb, var(--color-lv-incompat) 40%, transparent)" : "var(--border)",
+        color,
+        borderColor: `color-mix(in srgb, ${color} 45%, transparent)`,
+        background: notable ? `color-mix(in srgb, ${color} 10%, transparent)` : "transparent",
       }}
     >
+      {notable ? (
+        <span aria-hidden className="inline-block size-2 rounded-full" style={{ background: color }} />
+      ) : null}
       {courtLabel[status]}
     </span>
   );
