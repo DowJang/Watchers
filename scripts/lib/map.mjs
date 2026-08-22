@@ -172,15 +172,24 @@ export function mapVotes(rows) {
   return byBill;
 }
 
-/** 국회의원 인적사항 row → Legislator */
+/**
+ * 국회의원 인적사항 row → Legislator.
+ *
+ * ⚠️ Legislator 타입(및 화면의 getParty(sponsor.partyId) 호출)은 partyId 를 요구한다.
+ * partyName 만 반환하면 화면에서 정당을 못 찾아 "확인 필요"로 표시된다 — 실제로 그렇게
+ * 깨진 적이 있어 partyId 를 함께 채운다. id 는 parties 배열 조립 시 쓰는 것과 동일한
+ * slug(정당명) 이어야 서로 매칭된다(sync.mjs 참고).
+ */
 export function mapLegislator(row) {
   const name = pick(row, "HG_NM", "NAAS_NM", "MEMBER_NM");
   if (!name) return null;
   const code = pick(row, "MONA_CD", "NAAS_CD", "MEMBER_NO") ?? name;
+  const partyName = pick(row, "POLY_NM", "PLPT_NM", "PARTY_NM") ?? "확인 필요";
   return {
     id: slug(code),
     name,
-    partyName: pick(row, "POLY_NM", "PLPT_NM", "PARTY_NM") ?? "확인 필요",
+    partyId: slug(partyName),
+    partyName,
     district: pick(row, "ORIG_NM", "ELECD_NM", "DISTRICT") ?? "비례대표",
     committee: pick(row, "CMIT_NM", "BLNG_CMIT_NM"),
     officialUrl: pick(row, "MEM_TITLE", "NAAS_PIC", "HOMEPAGE") ?? undefined,
