@@ -72,12 +72,42 @@ GitHub Actions 러너는 실행마다 IP 가 바뀌므로 등록할 고정 IP �
 
 ## 1. 공식 국회 데이터 켜기
 
-1. https://open.assembly.go.kr 회원가입 → 로그인
-2. **마이페이지 → 인증키 발급** 신청 → **인증키 발급내역**에서 키 확인
-3. 저장소 **Settings → Secrets and variables → Actions → New repository secret**
-   - Name `ASSEMBLY_API_KEY` / Value: 발급받은 키
+### ⚠️ GitHub Actions 로는 자동 수집이 안 됩니다
 
-이후 매일 00:00 KST 에 자동 실행됩니다.
+열린국회정보 API 는 **GitHub Actions(해외 클라우드 IP)의 접속을 연결 단계에서 막습니다**
+(`CONNECT_TIMEOUT` — 인증키와 무관, 3회 재시도해도 동일). 이 PC(국내 네트워크)에서 같은 주소로
+호출하면 0.06초 만에 응답이 옵니다. 즉 코드 문제가 아니라 발신 IP 문제이며, 클라우드에서는
+고칠 방법이 없습니다.
+
+그래서 자동 수집은 **국내 네트워크에 있는 PC에서 예약 실행**하고, 결과만 GitHub 에 올리는
+방식으로 바꿨습니다. 사이트 자체(정적 페이지 배포)는 지금처럼 100% GitHub Pages 이며, 이
+PC가 담당하는 일은 "매일 정해진 시각에 데이터를 받아 커밋·푸시"뿐입니다.
+
+### 설정 — 사무실 PC에서 한 번만
+
+1. https://open.assembly.go.kr 회원가입 → 로그인 → **마이페이지 → 인증키 발급** 신청 →
+   **인증키 발급내역**에서 키 확인 *(이미 완료됨)*
+2. 사무실 PC의 이 저장소 폴더( Dropbox 로 동기화되는 폴더, 이 PC와 동일 경로 `C:\Dropbox\감시자들`)
+   최상위에 `.env.local` 파일을 새로 만들고 한 줄만 적어 저장:
+   ```
+   ASSEMBLY_API_KEY=발급받은키그대로
+   ```
+   (이 파일은 git 에 올라가지 않습니다 — `.gitignore` 에 이미 등록되어 있습니다.)
+3. `scripts\register-local-sync-task.ps1` 파일을 **우클릭 → PowerShell로 실행** — 매일 09:30
+   실행되는 Windows 작업 스케줄러 항목을 등록합니다. (관리자 권한 불필요, 딱 한 번만 하면 됨)
+4. 바로 테스트해 보려면 PowerShell 을 열고:
+   ```powershell
+   Start-ScheduledTask -TaskName "감시자들 공식데이터동기화"
+   ```
+   결과 로그는 `scripts\local-sync.log` 에 쌓입니다.
+
+이후 매일 09:30 에 사무실 PC가 켜져 있고 로그인되어 있으면 자동으로 수집 → 커밋 → 푸시 →
+Pages 재배포까지 이어집니다. **주의: 이 예약 작업은 사무실 PC 한 곳에만 등록하세요.** 이
+폴더는 두 PC가 Dropbox 로 번갈아 쓰고 있으므로, 양쪽에 모두 등록하면 같은 시각에 두 번 실행되어
+git 충돌이 날 수 있습니다.
+
+`.github/workflows/sync.yml` 은 자동 스케줄을 껐고 수동 실행(workflow_dispatch)만 남겨
+뒀습니다 — 나중에 IP 차단이 풀렸는지 다시 확인해 보고 싶을 때 쓰는 진단용입니다.
 
 ### 연결 점검
 

@@ -1,0 +1,4 @@
+# Windows PowerShell 5.1 은 BOM 없는 UTF-8 .ps1 파일의 한글을 잘못 읽어
+# 문자열 종료를 못 찾는 구문 오류를 낸다. BOM을 유지해야 하므로 git 이
+# 줄바꿈 변환 과정에서 인코딩을 건드리지 않도록 binary 로 취급한다.
+*.ps1 -text
