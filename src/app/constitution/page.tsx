@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { articles, principles } from "@/data/constitution";
 import { billsByArticle } from "@/lib/site";
+import { analysisOf } from "@/lib/repo";
 import { n } from "@/lib/format";
 import { ConflictBadge } from "@/components/Badges";
 
@@ -41,7 +42,7 @@ export default function ConstitutionPage() {
                   </span>
                   <span className="ml-auto flex flex-wrap gap-1">
                     {related.slice(0, 3).map((b) => (
-                      <ConflictBadge key={b.id} level={b.analysis.conflictLevel} size="sm" />
+                      <ConflictBadge key={b.id} level={analysisOf(b).conflictLevel} size="sm" />
                     ))}
                   </span>
                 </div>

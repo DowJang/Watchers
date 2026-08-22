@@ -1,6 +1,8 @@
-import { bills } from "@/data/bills";
-import type { Bill, CitizenComment, SiteMeta } from "./types";
+import type { Bill, CitizenComment } from "./types";
 import { TRIGGER_THRESHOLD, conflictOrder } from "./labels";
+import { analysisOf, bills, legislators } from "./repo";
+
+export { siteMeta, dataOrigin, syncRuns } from "./repo";
 
 /** 제작서 §38 — 핵심 문구 */
 export const SITE = {
@@ -10,20 +12,6 @@ export const SITE = {
   participation: "공식 기록을 확인한 뒤 직접 판단해 주십시오.",
   voteQuestion: "이 법안이 대한민국 헌법의 원칙에 적합하다고 생각하십니까?",
 } as const;
-
-/** 제작서 §24 — 공식자료 최종 확인 시각 / §25 오늘의 변경 */
-export const siteMeta: SiteMeta = {
-  lastSyncedAt: "2026-08-22T00:00:00+09:00",
-  dataOrigin: "SAMPLE",
-  today: {
-    newBills: 2,
-    committeePassed: 1,
-    plenaryPassed: 1,
-    promulgated: 0,
-    inForce: 0,
-    courtDecisions: 0,
-  },
-};
 
 /** 시민 의견투표 격차 (부적합 − 적합) */
 export function gap(bill: Bill): number {
@@ -49,16 +37,16 @@ const levelRank = new Map(conflictOrder.map((l, i) => [l, i]));
 /** 충돌등급 높은 순 → 최신 발의 순 */
 export function sortByGravity(list: Bill[]): Bill[] {
   return [...list].sort((a, b) => {
-    const la = levelRank.get(a.analysis.conflictLevel) ?? 99;
-    const lb = levelRank.get(b.analysis.conflictLevel) ?? 99;
+    const la = levelRank.get(analysisOf(a).conflictLevel) ?? 99;
+    const lb = levelRank.get(analysisOf(b).conflictLevel) ?? 99;
     if (la !== lb) return la - lb;
-    return b.fact.proposal.proposedAt.localeCompare(a.fact.proposal.proposedAt);
+    return (b.fact.proposal.proposedAt ?? "").localeCompare(a.fact.proposal.proposedAt ?? "");
   });
 }
 
 export function sortByRecent(list: Bill[]): Bill[] {
   return [...list].sort((a, b) =>
-    b.fact.proposal.proposedAt.localeCompare(a.fact.proposal.proposedAt),
+    (b.fact.proposal.proposedAt ?? "").localeCompare(a.fact.proposal.proposedAt ?? ""),
   );
 }
 
@@ -66,10 +54,14 @@ export function allBills(): Bill[] {
   return bills;
 }
 
+export function allLegislators() {
+  return legislators;
+}
+
 /** HOME — 헌법충돌 주요 법안 */
 export function keyConflictBills(limit = 3): Bill[] {
   return sortByGravity(
-    bills.filter((b) => ["VOID", "INCOMPATIBLE", "HIGH"].includes(b.analysis.conflictLevel)),
+    bills.filter((b) => ["VOID", "INCOMPATIBLE", "HIGH"].includes(analysisOf(b).conflictLevel)),
   ).slice(0, limit);
 }
 
@@ -85,14 +77,14 @@ export function inForceBills(limit = 3): Bill[] {
     .slice(0, limit);
 }
 
-/** HOME — 오늘의 시민의견 (부적합 격차가 큰 순 = Trigger에 가까운 순) */
+/** HOME — 오늘의 시민의견 (부적합 격차가 큰 순 = Trigger 에 가까운 순) */
 export function topOpinionBills(limit = 3): Bill[] {
   return [...bills].sort((a, b) => gap(b) - gap(a)).slice(0, limit);
 }
 
 /** 특정 헌법 조항을 다루는 법안 (§33 CONSTITUTION) */
 export function billsByArticle(articleId: string): Bill[] {
-  return sortByGravity(bills.filter((b) => b.analysis.articleIds.includes(articleId)));
+  return sortByGravity(bills.filter((b) => analysisOf(b).articleIds.includes(articleId)));
 }
 
 /** 의원별 발의·표결 기록 (§33 LEGISLATORS) */
@@ -120,7 +112,7 @@ export function billsByLegislator(legislatorId: string) {
 
 /**
  * ⚠️ 예시(SAMPLE) 시민 코멘트.
- * 실서비스에서는 인증된 사용자의 실제 코멘트를 DB에서 읽는다 (§15).
+ * 백엔드가 연결되면 CommentPanel 이 Supabase 에서 직접 읽는다 (§15).
  */
 export const sampleComments: CitizenComment[] = [
   {

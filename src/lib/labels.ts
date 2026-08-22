@@ -62,15 +62,30 @@ export const conflictMeta: Record<
     cssVar: "var(--color-lv-low)",
     desc: "헌법쟁점이 있으나 충돌 소지가 낮다고 감시자들이 검토한 법안입니다.",
   },
+  PENDING: {
+    dot: "⚫",
+    label: "헌법 분석 준비 중",
+    short: "분석 대기",
+    cssVar: "var(--text-3)",
+    desc: "공식 기록은 수집했으나 헌법 분석이 아직 작성되지 않았습니다. 등급을 자동으로 매기지 않습니다.",
+  },
 };
 
-export const conflictOrder: ConflictLevel[] = ["VOID", "INCOMPATIBLE", "HIGH", "MEDIUM", "LOW"];
+export const conflictOrder: ConflictLevel[] = [
+  "VOID",
+  "INCOMPATIBLE",
+  "HIGH",
+  "MEDIUM",
+  "LOW",
+  "PENDING",
+];
 
 /** 헌재 판단 전에는 반드시 함께 표시한다 (제작서 §7) */
 export const NOT_CONFIRMED_NOTICE = "헌법재판소에 의해 위헌으로 확정된 법률은 아닙니다.";
 
 export function needsNotConfirmedNotice(level: ConflictLevel, court: CourtStatus): boolean {
   if (court === "UNCONSTITUTIONAL") return false;
+  if (level === "PENDING") return false; // 등급 자체를 부여하지 않은 상태
   return level === "HIGH" || level === "MEDIUM" || level === "LOW" || court === "NONE";
 }
 

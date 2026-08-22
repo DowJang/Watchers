@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Bill } from "@/lib/types";
-import { getLegislator, getParty } from "@/data/people";
+import { analysisOf, getLegislator, getParty } from "@/lib/repo";
 import { ConflictBadge, CourtPill, Keyword, StatusPill } from "./Badges";
 import { n } from "@/lib/format";
 
@@ -9,7 +9,8 @@ import { n } from "@/lib/format";
  * 한 장 안에서 [무슨 법인가 / 헌법쟁점 / 누가 / 상태 / 표결 / 법적 상태]가 모두 보여야 한다.
  */
 export function BillCard({ bill }: { bill: Bill }) {
-  const { fact, analysis } = bill;
+  const { fact } = bill;
+  const analysis = analysisOf(bill);
   const sponsor = fact.proposal.sponsorId ? getLegislator(fact.proposal.sponsorId) : undefined;
   const party = sponsor ? getParty(sponsor.partyId) : undefined;
   const v = fact.vote;

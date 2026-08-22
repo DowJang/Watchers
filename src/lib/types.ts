@@ -31,7 +31,13 @@ export type ConflictLevel =
   | "INCOMPATIBLE" // 🔵 헌법불합치 등
   | "HIGH" // 🟠 헌법 직접충돌 검토 HIGH
   | "MEDIUM" // 🟡 중대한 헌법쟁점 MEDIUM
-  | "LOW"; // ⚪ 헌법쟁점 LOW
+  | "LOW" // ⚪ 헌법쟁점 LOW
+  /**
+   * ⚫ 등급 미부여.
+   * 공식 API 로 FACT 만 수집되고 사람이 작성한 헌법 분석이 아직 없는 상태.
+   * 등급을 자동으로 매기지 않기 위해 별도 상태로 둔다(§3.B, §30).
+   */
+  | "PENDING";
 
 /** 제작서 §4 — 법적 상태 (헌재 판단) */
 export type CourtStatus =
@@ -137,6 +143,13 @@ export interface BillFact {
   /** 헌재 사건번호 (부여된 경우) */
   courtCaseNo?: string;
   sources: OfficialSource[];
+  /**
+   * 표결 API 가 찬성·반대·기권 명단만 제공하는 경우, 불참은 "전체 의원 − 표결 참여자"로
+   * 계산한 추정값이다. 이 경우 화면에 추정임을 고지한다.
+   */
+  voteAbsentInferred?: boolean;
+  /** 공식 시스템의 원본 키 (재동기화 시 매칭용) */
+  officialKeys?: { billId: string; billNo?: string };
 }
 
 /** 헌법 조항 */
@@ -220,7 +233,11 @@ export interface Bill {
   id: string; // URL slug
   origin: DataOrigin;
   fact: BillFact;
-  analysis: BillAnalysis;
+  /**
+   * 사람이 작성하기 전에는 null 이다.
+   * null 인 법안은 "헌법 분석 준비 중"으로 표시하고 충돌등급을 부여하지 않는다.
+   */
+  analysis: BillAnalysis | null;
   opinion: CitizenVoteTally;
 }
 

@@ -1,0 +1,6 @@
+{
+  "lastSyncedAt": "",
+  "dataOrigin": "SAMPLE",
+  "counts": { "bills": 0, "legislators": 0, "withVotes": 0, "withAnalysis": 0 },
+  "today": { "newBills": 0, "committeePassed": 0, "plenaryPassed": 0, "promulgated": 0, "inForce": 0, "courtDecisions": 0 }
+}

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Bill, BillStatus, ConflictLevel } from "@/lib/types";
 import { conflictMeta, conflictOrder, statusLabel, statusOrder } from "@/lib/labels";
 import { BillCard } from "./BillCard";
-import { getLegislator, getParty } from "@/data/people";
+import { analysisOf, getLegislator, getParty } from "@/lib/repo";
 
 type Sort = "gravity" | "recent" | "opinion";
 
@@ -39,7 +39,7 @@ export function BillBrowser({ bills }: { bills: Bill[] }) {
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
     let out = bills.filter((b) => {
-      if (level !== "ALL" && b.analysis.conflictLevel !== level) return false;
+      if (level !== "ALL" && analysisOf(b).conflictLevel !== level) return false;
       if (status !== "ALL" && b.fact.status !== status) return false;
       if (!needle) return true;
       const sponsor = b.fact.proposal.sponsorId ? getLegislator(b.fact.proposal.sponsorId) : undefined;
@@ -48,9 +48,9 @@ export function BillBrowser({ bills }: { bills: Bill[] }) {
         b.fact.title,
         b.fact.billNo,
         b.fact.committee,
-        b.analysis.whatItIs,
-        b.analysis.coreIssue,
-        ...b.analysis.keywords,
+        analysisOf(b).whatItIs,
+        analysisOf(b).coreIssue,
+        ...analysisOf(b).keywords,
         sponsor?.name ?? "",
         party,
       ]
@@ -66,8 +66,8 @@ export function BillBrowser({ bills }: { bills: Bill[] }) {
         const gb = b.opinion.unfit - b.opinion.fit;
         return gb - ga;
       }
-      const la = levelRank.get(a.analysis.conflictLevel) ?? 99;
-      const lb = levelRank.get(b.analysis.conflictLevel) ?? 99;
+      const la = levelRank.get(analysisOf(a).conflictLevel) ?? 99;
+      const lb = levelRank.get(analysisOf(b).conflictLevel) ?? 99;
       if (la !== lb) return la - lb;
       return b.fact.proposal.proposedAt.localeCompare(a.fact.proposal.proposedAt);
     });

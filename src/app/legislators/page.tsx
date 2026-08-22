@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { legislators, parties, getParty } from "@/data/people";
+import { legislators, parties, getParty } from "@/lib/repo";
 import { billsByLegislator } from "@/lib/site";
 import { n } from "@/lib/format";
 

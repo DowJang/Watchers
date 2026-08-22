@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { PlenaryVote, VoteChoice } from "@/lib/types";
 import { voteMeta, voteOrder } from "@/lib/labels";
-import { groupByParty } from "@/data/people";
+import { groupByParty } from "@/lib/repo";
 import { n, pct } from "@/lib/format";
 
 /**

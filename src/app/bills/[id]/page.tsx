@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { bills, getBill } from "@/data/bills";
 import { getArticle, getPrinciple } from "@/data/constitution";
-import { getLegislator, getParty, groupByParty } from "@/data/people";
+import {
+  analysisOf,
+  bills,
+  getBill,
+  getLegislator,
+  getParty,
+  groupByParty,
+  isAnalysisPending,
+} from "@/lib/repo";
 import { AnalysisZone, FactZone, OpinionZone } from "@/components/Zone";
 import { ConflictBadge, CourtPill, Keyword, SourceLink, StatusPill } from "@/components/Badges";
 import { Timeline } from "@/components/Timeline";
@@ -26,7 +33,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   if (!bill) return { title: "법안을 찾을 수 없습니다" };
   return {
     title: bill.fact.title,
-    description: bill.analysis.whatItIs,
+    description: analysisOf(bill).whatItIs,
   };
 }
 
@@ -35,7 +42,9 @@ export default async function BillDetailPage({ params }: { params: Params }) {
   const bill = getBill(id);
   if (!bill) notFound();
 
-  const { fact, analysis, opinion } = bill;
+  const { fact, opinion } = bill;
+  const analysis = analysisOf(bill);
+  const pending = isAnalysisPending(bill);
   const sponsor = fact.proposal.sponsorId ? getLegislator(fact.proposal.sponsorId) : undefined;
   const sponsorParty = sponsor ? getParty(sponsor.partyId) : undefined;
   const showNotice = needsNotConfirmedNotice(analysis.conflictLevel, fact.courtStatus);
@@ -96,7 +105,15 @@ export default async function BillDetailPage({ params }: { params: Params }) {
         {/* ── 본문 열 ── */}
         <div className="space-y-5">
           {/* §5.1 쉬운 요약 */}
-          <AnalysisZone id="summary" title="쉬운 요약">
+          <AnalysisZone
+            id="summary"
+            title="쉬운 요약"
+            note={
+              pending
+                ? "이 법안은 공식 기록만 수집된 상태입니다. 헌법 분석을 자동으로 생성하지 않기 때문에, 작성이 끝나기 전까지는 충돌등급을 표시하지 않습니다."
+                : undefined
+            }
+          >
             <dl className="space-y-3.5">
               <div>
                 <dt className="text-[0.75rem] font-extrabold" style={{ color: "var(--analysis-fg)" }}>
@@ -281,7 +298,10 @@ export default async function BillDetailPage({ params }: { params: Params }) {
             title="본회의 표결"
             note={
               fact.vote
-                ? `${fact.vote.sessionLabel} · ${d(fact.vote.date)} · ${fact.vote.result}`
+                ? `${fact.vote.sessionLabel} · ${d(fact.vote.date)} · ${fact.vote.result}` +
+                  (fact.voteAbsentInferred
+                    ? " · 불참 명단은 공식 표결기록에 포함되지 않아 재적 의원에서 표결 참여자를 뺀 값입니다."
+                    : "")
                 : undefined
             }
             action={fact.vote?.source ? <SourceLink source={fact.vote.source} compact /> : null}
@@ -297,6 +317,22 @@ export default async function BillDetailPage({ params }: { params: Params }) {
 
           {/* §6 VS 헌법 */}
           <AnalysisZone id="constitution" title="VS 헌법">
+            {pending ? (
+              <div className="py-2">
+                <p className="text-[0.9375rem] font-semibold leading-relaxed">
+                  이 법안의 헌법 대조는 아직 작성되지 않았습니다.
+                </p>
+                <p className="mt-1.5 text-[0.875rem] leading-relaxed text-dim">
+                  관련 헌법조항, 위헌·합헌 양측 논거, 관련 판례는 사람이 공식 기록을 확인한 뒤에만
+                  게시합니다. 자동으로 생성해 채우지 않습니다. 그동안 위의 공식 기록과{" "}
+                  <Link href="/constitution" className="font-bold underline">
+                    헌법 조항
+                  </Link>
+                  을 직접 대조해 보실 수 있습니다.
+                </p>
+              </div>
+            ) : (
+              <>
             {/* 6.1 관련 헌법조항 */}
             <h3 className="text-[0.8125rem] font-extrabold" style={{ color: "var(--analysis-fg)" }}>
               관련 헌법조항
@@ -376,6 +412,8 @@ export default async function BillDetailPage({ params }: { params: Params }) {
             </ul>
 
             <p className="mt-4 text-[0.75rem] text-faint">분석 최종 검토 {d(analysis.reviewedAt)}</p>
+              </>
+            )}
           </AnalysisZone>
 
           {/* 공식 원문 모음 */}
