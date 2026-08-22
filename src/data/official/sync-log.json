@@ -1,6 +1,53 @@
 {
   "runs": [
     {
+      "startedAt": "2026-08-22T09:54:07.136Z",
+      "finishedAt": "2026-08-22T09:54:07.136Z",
+      "status": "failed",
+      "entries": [
+        {
+          "at": "2026-08-22T09:53:25.258Z",
+          "level": "info",
+          "message": "국회의원 299명 수집"
+        },
+        {
+          "at": "2026-08-22T09:53:42.604Z",
+          "level": "info",
+          "message": "의안 API 파라미터: {\"AGE\":\"22\"} (요청 상한 14581건)"
+        },
+        {
+          "at": "2026-08-22T09:53:42.673Z",
+          "level": "info",
+          "message": "의안 14700건 중 최근 450일 9147건 채택"
+        },
+        {
+          "at": "2026-08-22T09:53:42.673Z",
+          "level": "info",
+          "message": "의안 응답 필드: BILL_ID, BILL_NO, BILL_NAME, COMMITTEE, PROPOSE_DT, PROC_RESULT, AGE, DETAIL_LINK, PROPOSER, MEMBER_LIST, LAW_PROC_DT, LAW_PROC_RESULT_CD, RST_MONA_CD, LAW_PRESENT_DT, LAW_SUBMIT_DT, CMT_PROC_RESULT_CD, CMT_PROC_DT, CMT_PRESENT_DT, COMMITTEE_DT, PROC_DT, COMMITTEE_ID, PUBL_MONA_CD, RST_PROPOSER, PUBL_PROPOSER"
+        },
+        {
+          "at": "2026-08-22T09:54:07.000Z",
+          "level": "info",
+          "message": "의안별 표결 조회 140건 시도 / 실패 0건 / 확보 140건"
+        },
+        {
+          "at": "2026-08-22T09:54:07.014Z",
+          "level": "info",
+          "message": "공포일 확보 0건 (국회 의안정보 기준)"
+        },
+        {
+          "at": "2026-08-22T09:54:07.047Z",
+          "level": "info",
+          "message": "쉬운 요약 연결 0건 / 미작성 9147건"
+        },
+        {
+          "at": "2026-08-22T09:54:07.136Z",
+          "level": "error",
+          "message": "동기화 중단: ReferenceError: analyzed is not defined\n    at main (file:///C:/Dropbox/%EA%B0%90%EC%8B%9C%EC%9E%90%EB%93%A4/scripts/sync.mjs:252:21)"
+        }
+      ]
+    },
+    {
       "startedAt": "2026-08-22T08:51:53.806Z",
       "finishedAt": "2026-08-22T08:52:43.874Z",
       "status": "ok",
