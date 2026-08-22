@@ -17,7 +17,33 @@ $logFile = Join-Path $repoRoot "scripts\local-sync.log"
 function Log($msg) {
     $line = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $msg"
     Write-Output $line
-    Add-Content -Path $logFile -Value $line
+    # Dropbox 가 로그 파일을 실시간 동기화하면서 잠깐 잠글 수 있다.
+    # 로그 기록 실패로 전체 동기화가 중단되면 안 되므로 몇 번만 재시도하고, 그래도 안 되면 넘어간다.
+    for ($i = 0; $i -lt 5; $i++) {
+        try {
+            Add-Content -Path $logFile -Value $line -Encoding UTF8 -ErrorAction Stop
+            return
+        }
+        catch {
+            Start-Sleep -Milliseconds 300
+        }
+    }
+}
+
+# git/npm 같은 외부 프로그램은 정상 동작 중에도 안내 메시지를 stderr 로 보낸다
+# (예: git 의 "Already up to date."). $ErrorActionPreference = Stop 상태에서 2>&1 로
+# 합치면 이런 정상 메시지까지 종료 오류로 취급해 버리므로, 외부 명령을 실행하는 동안만
+# Continue 로 낮추고 종료코드로만 성공 여부를 판정한다.
+function Invoke-External([string]$Command, [string[]]$CmdArgs, [string]$FailMessage) {
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & $Command @CmdArgs 2>&1 | ForEach-Object { Log "  $_" }
+    }
+    finally {
+        $ErrorActionPreference = $prev
+    }
+    if ($LASTEXITCODE -ne 0) { throw "$FailMessage (exit $LASTEXITCODE)" }
 }
 
 # 중복 실행 방지 — Dropbox 동기화 중 또는 이전 실행이 남아 있으면 건너뛴다.
@@ -49,12 +75,14 @@ try {
     }
 
     Log "git pull 시작"
-    git pull --rebase --autostash origin main 2>&1 | ForEach-Object { Log "  $_" }
-    if ($LASTEXITCODE -ne 0) { throw "git pull 실패 (exit $LASTEXITCODE)" }
+    Invoke-External "git" @("pull", "--rebase", "--autostash", "origin", "main") "git pull 실패"
 
     Log "npm run sync 시작"
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     npm run sync 2>&1 | ForEach-Object { Log "  $_" }
     $syncExit = $LASTEXITCODE
+    $ErrorActionPreference = $prevEAP
     Log "npm run sync 종료 (exit $syncExit)"
 
     $changed = git status --porcelain src/data/official
@@ -62,9 +90,8 @@ try {
         git add src/data/official
         $stamp = Get-Date -Format "yyyy-MM-dd HH:mm"
         $status = if ($syncExit -eq 0) { "success" } else { "failure" }
-        git commit -m "공식 기록 동기화 $stamp KST [$status] (사무실 PC)" | ForEach-Object { Log "  $_" }
-        git push origin main 2>&1 | ForEach-Object { Log "  $_" }
-        if ($LASTEXITCODE -ne 0) { throw "git push 실패 (exit $LASTEXITCODE)" }
+        Invoke-External "git" @("commit", "-m", "공식 기록 동기화 $stamp KST [$status] (사무실 PC)") "git commit 실패"
+        Invoke-External "git" @("push", "origin", "main") "git push 실패"
         Log "커밋·푸시 완료"
     } else {
         Log "변경 없음 — 커밋하지 않습니다."

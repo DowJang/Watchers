@@ -27,8 +27,15 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = join(ROOT, "src", "data", "official");
 const ANALYSIS_DIR = join(ROOT, "src", "data", "analysis");
 
-/** 수집 범위 — 최근 N일 이내 발의/변경 의안 */
-const WINDOW_DAYS = Number(process.env.SYNC_WINDOW_DAYS ?? 120);
+/**
+ * 수집 범위 — 최근 N일 이내 발의된 의안.
+ *
+ * 120일로 뒀더니 "가결/부결까지 간 의안이 0건"이었다. 국회 의안은 발의부터 본회의 표결까지
+ * 보통 몇 달~1년 넘게 걸리므로, 120일 창은 아직 위원회에 머물러 있는 의안만 잡히고
+ * 표결·공포·시행 데이터가 있는 의안은 전부 걸러진다(실제로 4500건을 훑어야 '가결' 사례가
+ * 나왔다). 그래서 한 국회 임기 주기를 넉넉히 덮도록 기본값을 450일로 올렸다.
+ */
+const WINDOW_DAYS = Number(process.env.SYNC_WINDOW_DAYS ?? 450);
 /**
  * 대수. 열린국회정보의 의안·표결 서비스는 대수를 필수로 요구한다.
  * 2024-05-30 개원한 제22대 국회가 기본값이며, SYNC_AGE 로 바꿀 수 있다.
@@ -95,15 +102,35 @@ async function main() {
   // 서비스마다 필수 파라미터 이름이 달라 후보 조합을 순서대로 시도한다.
   let bills = [];
   try {
+    // pSize·maxPages 는 WINDOW_DAYS 를 넉넉히 덮을 수 있게 잡는다.
+    // (22대 전체 18,862 건 / 약 815 일 ≈ 하루 23 건 페이스 기준 여유 있게 계산)
+    const maxRows = Math.ceil((WINDOW_DAYS / 815) * 18862 * 1.4);
+    const pSize = 300;
+    const maxPages = Math.max(20, Math.ceil(maxRows / pSize));
     const { rows, params } = await fetchAllTrying(
       SERVICES.bills,
       [{ AGE }, { AGE, ORD: AGE }, { DAESU: AGE }, { UNIT_CD: `1000${AGE}` }, {}],
-      { pSize: 100, maxPages: 20 },
+      { pSize, maxPages },
     );
-    note("info", `의안 API 파라미터: ${JSON.stringify(params)}`);
+    note("info", `의안 API 파라미터: ${JSON.stringify(params)} (요청 상한 ${maxRows}건)`);
     const since = daysAgoIso(WINDOW_DAYS);
     const mapped = rows.map(mapBill).filter(Boolean);
     bills = mapped.filter((b) => !b.fact.proposal.proposedAt || b.fact.proposal.proposedAt >= since);
+
+    // 응답이 최신순으로 오는 것을 전제로, "행 개수가 상한에 닿았다"만으로는 창이 잘렸는지
+    // 알 수 없다 — 이미 창 경계를 넘어선 오래된 행까지 받았다면 창 자체는 온전하다.
+    // 실제로 창이 잘렸는지는 "가장 오래된 응답 행이 아직도 창 안쪽 날짜인가"로 판단한다.
+    const oldestFetchedDate = mapped
+      .map((b) => b.fact.proposal.proposedAt)
+      .filter(Boolean)
+      .sort()[0];
+    if (rows.length >= maxRows && oldestFetchedDate && oldestFetchedDate >= since) {
+      note(
+        "warn",
+        `의안 응답이 요청 상한(${maxRows}건)에 닿았고, 가장 오래된 응답(${oldestFetchedDate})도 ` +
+          `아직 ${WINDOW_DAYS}일 창 안쪽이다 — 창을 다 못 덮었을 수 있음. maxRows 배수를 올리세요.`,
+      );
+    }
     note("info", `의안 ${mapped.length}건 중 최근 ${WINDOW_DAYS}일 ${bills.length}건 채택`);
     if (rows[0]) note("info", `의안 응답 필드: ${Object.keys(rows[0]).join(", ")}`);
   } catch (e) {
@@ -111,22 +138,11 @@ async function main() {
   }
 
   // ── 3. 본회의 표결정보 ─────────────────────────────────
-  // 이 서비스는 의안 단위 조회를 요구하는 경우가 있어, 일괄 조회가 막히면 의안별로 돈다.
-  let voteMap = new Map();
-  try {
-    const { rows, params } = await fetchAllTrying(
-      SERVICES.votes,
-      [{ AGE }, { AGE, ORD: AGE }, {}],
-      { pSize: 300, maxPages: 20 },
-    );
-    note("info", `표결 API 파라미터: ${JSON.stringify(params)}`);
-    voteMap = mapVotes(rows);
-    if (rows[0]) note("info", `표결 응답 필드: ${Object.keys(rows[0]).join(", ")}`);
-    note("info", `표결 기록 ${voteMap.size}건 수집`);
-  } catch (e) {
-    note("warn", `표결 일괄 수집 실패, 의안별 조회로 전환: ${e.message}`);
-    voteMap = await fetchVotesPerBill(bills);
-  }
+  // "국회의원 본회의 표결정보"(nojepdqqaweusdfbi) 서비스는 BILL_ID 가 필수 인자다.
+  // (참고로 "의안별 표결현황"이라는 비슷한 이름의 다른 서비스가 있는데, 그건 의원별 표결이
+  //  아니라 의안당 찬반 합계만 준다 — 처음에 이걸 잘못 골라 표결이 항상 0건으로 나왔었다.)
+  // 필수 인자라 일괄 조회 자체가 불가능하므로 바로 의안별로 조회한다.
+  const voteMap = await fetchVotesPerBill(bills);
 
   // ── 4. 공포·시행 보강 (선택) ───────────────────────────
   //
@@ -251,12 +267,21 @@ async function main() {
  * 본회의 의결 기록이 있는 의안만 골라 순차 조회한다(동시 호출로 차단당하지 않도록).
  */
 async function fetchVotesPerBill(bills) {
-  const targets = bills.filter((b) => b.fact.events.some((e) => e.label.includes("본회의")));
-  const limit = Number(process.env.SYNC_VOTE_LOOKUP_LIMIT ?? 120);
+  // "본회의" 라벨이 붙은 이벤트는 대안반영폐기·철회처럼 실제 표결 없이 종결된 경우도
+  // 포함한다. procResult 로 실제 표결이 있었을 법한 의안만 추려 불필요한 조회를 줄인다.
+  // (그래도 없는 값이면 개별 조회가 그냥 INFO-200 빈 응답으로 끝나므로 과다 필터링 위험은 낮다.)
+  const NO_VOTE_RESULT = /철회|폐기$|반영폐기/;
+  const targets = bills.filter(
+    (b) =>
+      b.fact.events.some((e) => e.label.includes("본회의")) &&
+      !NO_VOTE_RESULT.test(b.fact.procResult ?? ""),
+  );
+  const limit = Number(process.env.SYNC_VOTE_LOOKUP_LIMIT ?? 400);
+  const targeted = targets.slice(0, limit);
   const merged = [];
   let failed = 0;
 
-  for (const bill of targets.slice(0, limit)) {
+  for (const bill of targeted) {
     try {
       const rows = await fetchAll(SERVICES.votes, {
         pSize: 300,
@@ -269,9 +294,15 @@ async function fetchVotesPerBill(bills) {
     }
   }
 
+  if (targets.length > limit) {
+    note(
+      "warn",
+      `표결 조회 대상이 한도(${limit})를 초과해 ${targets.length - limit}건을 이번 실행에서 건너뜀 (SYNC_VOTE_LOOKUP_LIMIT 로 조정 가능)`,
+    );
+  }
   note(
-    failed === targets.length && targets.length > 0 ? "error" : "info",
-    `의안별 표결 조회 ${targets.length}건 대상 / 실패 ${failed}건`,
+    failed === targeted.length && targeted.length > 0 ? "error" : "info",
+    `의안별 표결 조회 ${targeted.length}건 시도 / 실패 ${failed}건 / 확보 ${new Set(merged.map((r) => r.BILL_ID)).size}건`,
   );
   return mapVotes(merged);
 }

@@ -23,8 +23,13 @@ const BASE = "https://open.assembly.go.kr/portal/openapi";
 export const SERVICES = {
   /** 의안정보 — 발의 법률안 목록 */
   bills: process.env.ASSEMBLY_SVC_BILLS ?? "nzmimeepazxkubdpn",
-  /** 본회의 표결정보 — 의안별 의원 찬반 */
-  votes: process.env.ASSEMBLY_SVC_VOTES ?? "ncocpgfiaoituanbr",
+  /**
+   * 국회의원 본회의 표결정보 — 의원별 찬성/반대/기권.
+   * (주의: "의안별 표결현황"(ncocpgfiaoituanbr)은 의안당 찬반 합계만 주는 다른 서비스다.
+   *  이 서비스는 BILL_ID 가 필수 인자이므로 의안 하나씩 조회해야 한다 — sync.mjs 의
+   *  fetchVotesPerBill 참고.)
+   */
+  votes: process.env.ASSEMBLY_SVC_VOTES ?? "nojepdqqaweusdfbi",
   /** 국회의원 인적사항 */
   members: process.env.ASSEMBLY_SVC_MEMBERS ?? "nwvrqwxyaytdsfvhu",
 };
