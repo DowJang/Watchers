@@ -79,11 +79,20 @@ export function mapBill(row) {
       ? "위원회대안"
       : "의원발의";
 
+  // 공포·시행일은 국가법령정보센터가 호출 서버의 고정 IP 등록을 요구해 Actions 에서 쓸 수 없다.
+  // 국회 의안정보 응답에 들어 있는 날짜 필드에서 직접 뽑는다.
+  const promulgatedAt = toIsoDate(
+    pick(row, "ANNOUNCE_DT", "PUBL_DT", "PROM_DT", "PUBLIC_DT", "공포일자"),
+  );
+  const effectiveAt = toIsoDate(pick(row, "ENFORCE_DT", "ENF_DT", "시행일자"));
+
   return {
     id: slug(billId),
     origin: "OFFICIAL",
     officialKeys: { billId, billNo },
     fact: {
+      promulgatedAt,
+      effectiveAt,
       billNo: billNo ?? "확인 필요",
       title: pick(row, "BILL_NAME", "BILL_NM", "billName") ?? "확인 필요",
       committee: pick(row, "COMMITTEE", "CURR_COMMITTEE", "COMMITTEE_NM") ?? "확인 필요",

@@ -43,8 +43,20 @@ GitHub Actions (매일 00:00 KST)
 | 스위치 | 켜는 방법 | 켜지 않으면 |
 |---|---|---|
 | 공식 국회 데이터 | 저장소 Secret `ASSEMBLY_API_KEY` | 예시(가상) 데이터로 화면 구조만 표시 |
-| 공포·시행일 | 저장소 Secret `LAW_GO_KR_OC` | 공포·시행 항목 비움 |
 | 투표·코멘트·Trigger | 저장소 Variable `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 브라우저 로컬 데모 (저장 안 됨) |
+
+### 국가법령정보센터(law.go.kr)는 쓰지 않습니다
+
+처음에는 공포일·시행일을 국가법령정보센터 API 로 받으려 했으나, 이 API 는 **호출하는 서버의
+고정 IP·도메인을 사전 등록**해야 합니다.
+
+```
+"OPEN API 호출 시 사용자 검증을 위하여 정확한 서버장비의 IP주소 및 도메인주소를 등록해 주세요."
+```
+
+GitHub Actions 러너는 실행마다 IP 가 바뀌므로 등록할 고정 IP 가 없습니다. 따라서 공포·시행일은
+국회 의안정보 응답의 날짜 필드에서 직접 뽑습니다. `LAW_GO_KR_OC` 경로는 고정 IP 를 가진 환경에서
+돌릴 때를 위해 코드에 남겨 두었을 뿐, 등록하지 않아도 됩니다.
 
 ### ⚠️ 예시 데이터에 대하여
 
@@ -64,9 +76,6 @@ GitHub Actions (매일 00:00 KST)
 2. **마이페이지 → 인증키 발급** 신청 → **인증키 발급내역**에서 키 확인
 3. 저장소 **Settings → Secrets and variables → Actions → New repository secret**
    - Name `ASSEMBLY_API_KEY` / Value: 발급받은 키
-   - (선택) `LAW_GO_KR_OC` — https://open.law.go.kr 신청 후 받은 OC 값.
-     이메일이 `abc@gmail.com` 이면 OC 는 `abc`.
-4. **Actions 탭 → “공식 데이터 동기화” → Run workflow**
 
 이후 매일 00:00 KST 에 자동 실행됩니다.
 

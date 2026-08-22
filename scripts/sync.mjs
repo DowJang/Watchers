@@ -128,7 +128,12 @@ async function main() {
     voteMap = await fetchVotesPerBill(bills);
   }
 
-  // ── 4. 공포·시행 (국가법령정보센터) ────────────────────
+  // ── 4. 공포·시행 보강 (선택) ───────────────────────────
+  //
+  // 국가법령정보센터 API 는 호출하는 서버의 고정 IP/도메인 등록을 요구한다.
+  // GitHub Actions 러너는 IP 가 매번 바뀌므로 여기서는 사실상 쓸 수 없다.
+  // 기본 경로는 국회 의안정보의 공포·시행 날짜 필드이며(map.mjs),
+  // 아래는 고정 IP 를 가진 환경에서 돌릴 때만 동작하는 보강 경로다.
   const today = todayIso();
   if (process.env.LAW_GO_KR_OC) {
     for (const bill of bills.slice(0, Number(process.env.SYNC_LAW_LOOKUP_LIMIT ?? 40))) {
@@ -138,8 +143,10 @@ async function main() {
         });
         const row = found[0];
         if (!row) continue;
-        bill.fact.promulgatedAt = toIsoDate(row["공포일자"] ?? row.promulgationDate);
-        bill.fact.effectiveAt = toIsoDate(row["시행일자"] ?? row.enforcementDate);
+        bill.fact.promulgatedAt =
+          toIsoDate(row["공포일자"] ?? row.promulgationDate) ?? bill.fact.promulgatedAt;
+        bill.fact.effectiveAt =
+          toIsoDate(row["시행일자"] ?? row.enforcementDate) ?? bill.fact.effectiveAt;
         const link = row["법령상세링크"];
         if (link) {
           bill.fact.sources.push({
@@ -153,7 +160,8 @@ async function main() {
       }
     }
   } else {
-    note("warn", "LAW_GO_KR_OC 가 없어 공포·시행일은 수집하지 않았습니다.");
+    const withDates = bills.filter((b) => b.fact.promulgatedAt).length;
+    note("info", `공포일 확보 ${withDates}건 (국회 의안정보 기준)`);
   }
 
   // ── 5. 결합 ────────────────────────────────────────────
