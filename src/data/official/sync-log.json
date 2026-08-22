@@ -1,6 +1,58 @@
 {
   "runs": [
     {
+      "startedAt": "2026-08-22T08:51:53.806Z",
+      "finishedAt": "2026-08-22T08:52:43.874Z",
+      "status": "ok",
+      "entries": [
+        {
+          "at": "2026-08-22T08:51:54.300Z",
+          "level": "info",
+          "message": "국회의원 299명 수집"
+        },
+        {
+          "at": "2026-08-22T08:52:14.581Z",
+          "level": "info",
+          "message": "의안 API 파라미터: {\"AGE\":\"22\"} (요청 상한 14581건)"
+        },
+        {
+          "at": "2026-08-22T08:52:14.581Z",
+          "level": "warn",
+          "message": "의안 응답이 요청 상한(14581건)에 도달했다 — WINDOW_DAYS(450일) 구간을 다 못 덮었을 수 있음. SYNC_WINDOW_DAYS 를 낮추거나 코드의 maxRows 배수를 올리세요."
+        },
+        {
+          "at": "2026-08-22T08:52:14.660Z",
+          "level": "info",
+          "message": "의안 14700건 중 최근 450일 9147건 채택"
+        },
+        {
+          "at": "2026-08-22T08:52:14.660Z",
+          "level": "info",
+          "message": "의안 응답 필드: BILL_ID, BILL_NO, BILL_NAME, COMMITTEE, PROPOSE_DT, PROC_RESULT, AGE, DETAIL_LINK, PROPOSER, MEMBER_LIST, LAW_PROC_DT, LAW_PROC_RESULT_CD, RST_MONA_CD, LAW_PRESENT_DT, LAW_SUBMIT_DT, CMT_PROC_RESULT_CD, CMT_PROC_DT, CMT_PRESENT_DT, COMMITTEE_DT, PROC_DT, COMMITTEE_ID, PUBL_MONA_CD, RST_PROPOSER, PUBL_PROPOSER"
+        },
+        {
+          "at": "2026-08-22T08:52:43.719Z",
+          "level": "info",
+          "message": "의안별 표결 조회 140건 시도 / 실패 0건 / 확보 140건"
+        },
+        {
+          "at": "2026-08-22T08:52:43.733Z",
+          "level": "info",
+          "message": "공포일 확보 0건 (국회 의안정보 기준)"
+        },
+        {
+          "at": "2026-08-22T08:52:43.770Z",
+          "level": "info",
+          "message": "헌법 분석 연결 0건 / 미작성 9147건"
+        },
+        {
+          "at": "2026-08-22T08:52:43.873Z",
+          "level": "info",
+          "message": "동기화 완료 — 의안 9147 / 의원 299"
+        }
+      ]
+    },
+    {
       "startedAt": "2026-08-22T08:47:53.704Z",
       "finishedAt": "2026-08-22T08:48:03.530Z",
       "status": "ok",
