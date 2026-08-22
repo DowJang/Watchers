@@ -30,14 +30,21 @@ const OUT_DIR = join(ROOT, "src", "data", "official");
 const SUMMARIES_DIR = join(ROOT, "src", "data", "summaries");
 
 /**
- * 수집 범위 — 최근 N일 이내 발의된 의안.
+ * 수집 범위 — "최근 N일 이내 발의" 하나만으로는 부족하다.
  *
- * 120일로 뒀더니 "가결/부결까지 간 의안이 0건"이었다. 국회 의안은 발의부터 본회의 표결까지
- * 보통 몇 달~1년 넘게 걸리므로, 120일 창은 아직 위원회에 머물러 있는 의안만 잡히고
- * 표결·공포·시행 데이터가 있는 의안은 전부 걸러진다(실제로 4500건을 훑어야 '가결' 사례가
- * 나왔다). 그래서 한 국회 임기 주기를 넉넉히 덮도록 기본값을 450일로 올렸다.
+ * 120일: 발의부터 표결까지 보통 몇 달~1년 걸려서 표결·공포·시행 사례가 0건이었다.
+ * 450일(전부)로 넓혀도 근본적으로 같은 문제다 — 이미 통과·시행되었거나 헌재까지 간
+ * 의안일수록 발의가 오래됐다는 뜻인데, 날짜만으로 자르면 그런 "이미 결론이 난" 의안이
+ * 오히려 먼저 잘려나간다. 이 사이트의 목적과 정반대 방향의 편향이다.
+ *
+ * 그래서 최종 포함 기준은 다음 둘의 합집합이다.
+ *   1) 최근 WINDOW_DAYS 일 이내 발의 — "지금 진행 중인 것" 위주의 메인 피드
+ *   2) 발의일과 무관하게: 이미 가결·공포·시행된 의안 — "이미 결론이 난 것"은
+ *      아무리 오래됐어도 놓치지 않는다 (see includeAlways() in main())
+ * 헌재 결정 여부는 여기 넣고 싶지만 아직 공식 API 경로가 없다(§24 남은 범위).
+ * 그 경로가 생기면 courtStatus 조건만 추가하면 되도록 자리를 남겨 둔다.
  */
-const WINDOW_DAYS = Number(process.env.SYNC_WINDOW_DAYS ?? 450);
+const WINDOW_DAYS = Number(process.env.SYNC_WINDOW_DAYS ?? 300);
 /**
  * 대수. 열린국회정보의 의안·표결 서비스는 대수를 필수로 요구한다.
  * 2024-05-30 개원한 제22대 국회가 기본값이며, SYNC_AGE 로 바꿀 수 있다.
@@ -102,38 +109,57 @@ async function main() {
 
   // ── 2. 의안정보 ────────────────────────────────────────
   // 서비스마다 필수 파라미터 이름이 달라 후보 조합을 순서대로 시도한다.
+  //
+  // "이미 결론이 난" 의안을 날짜와 무관하게 찾아내려면 전체 임기 데이터를 봐야 한다 —
+  // WINDOW_DAYS 로 요청량을 줄이면 정작 오래된(=이미 결론 난) 의안부터 못 보게 된다.
+  // fetchAll() 은 API 가 알려주는 실제 총건수(total)에 도달하면 스스로 멈추므로,
+  // 상한을 넉넉히(현재 22대 전체 18,862건보다 여유 있게) 잡아도 실제로는 필요한
+  // 만큼만 요청한다.
   let bills = [];
   try {
-    // pSize·maxPages 는 WINDOW_DAYS 를 넉넉히 덮을 수 있게 잡는다.
-    // (22대 전체 18,862 건 / 약 815 일 ≈ 하루 23 건 페이스 기준 여유 있게 계산)
-    const maxRows = Math.ceil((WINDOW_DAYS / 815) * 18862 * 1.4);
     const pSize = 300;
-    const maxPages = Math.max(20, Math.ceil(maxRows / pSize));
+    const maxPages = 84; // 25,200 건까지 — 22대 전체(18,862)보다 여유를 둔 상한
     const { rows, params } = await fetchAllTrying(
       SERVICES.bills,
       [{ AGE }, { AGE, ORD: AGE }, { DAESU: AGE }, { UNIT_CD: `1000${AGE}` }, {}],
       { pSize, maxPages },
     );
-    note("info", `의안 API 파라미터: ${JSON.stringify(params)} (요청 상한 ${maxRows}건)`);
-    const since = daysAgoIso(WINDOW_DAYS);
-    const mapped = rows.map(mapBill).filter(Boolean);
-    bills = mapped.filter((b) => !b.fact.proposal.proposedAt || b.fact.proposal.proposedAt >= since);
-
-    // 응답이 최신순으로 오는 것을 전제로, "행 개수가 상한에 닿았다"만으로는 창이 잘렸는지
-    // 알 수 없다 — 이미 창 경계를 넘어선 오래된 행까지 받았다면 창 자체는 온전하다.
-    // 실제로 창이 잘렸는지는 "가장 오래된 응답 행이 아직도 창 안쪽 날짜인가"로 판단한다.
-    const oldestFetchedDate = mapped
-      .map((b) => b.fact.proposal.proposedAt)
-      .filter(Boolean)
-      .sort()[0];
-    if (rows.length >= maxRows && oldestFetchedDate && oldestFetchedDate >= since) {
+    note("info", `의안 API 파라미터: ${JSON.stringify(params)} — 총 ${rows.length}건 수신`);
+    if (rows.length >= maxPages * pSize) {
       note(
         "warn",
-        `의안 응답이 요청 상한(${maxRows}건)에 닿았고, 가장 오래된 응답(${oldestFetchedDate})도 ` +
-          `아직 ${WINDOW_DAYS}일 창 안쪽이다 — 창을 다 못 덮었을 수 있음. maxRows 배수를 올리세요.`,
+        `의안 응답이 요청 상한(${maxPages * pSize}건)에 닿았다 — 전체를 다 못 받았을 수 있음. ` +
+          `scripts/sync.mjs 의 maxPages 를 올리세요.`,
       );
     }
-    note("info", `의안 ${mapped.length}건 중 최근 ${WINDOW_DAYS}일 ${bills.length}건 채택`);
+
+    const since = daysAgoIso(WINDOW_DAYS);
+    const mapped = rows.map(mapBill).filter(Boolean);
+
+    // 최종 포함 기준 = "최근 WINDOW_DAYS 일 이내 발의" OR "발의일과 무관하게 이미 결론이 난 의안".
+    // courtStatus 조건은 헌재 데이터 수집 경로가 아직 없어 항상 거짓이지만, 그 경로가
+    // 생기면 이 한 줄만으로 즉시 포함되도록 미리 넣어 둔다.
+    const isRecent = (b) => !b.fact.proposal.proposedAt || b.fact.proposal.proposedAt >= since;
+    const isAlreadyResolved = (b) =>
+      Boolean(b.fact.promulgatedAt) ||
+      Boolean(b.fact.effectiveAt) ||
+      /가결|통과/.test(b.fact.procResult ?? "") ||
+      (b.fact.courtStatus && b.fact.courtStatus !== "NONE");
+
+    let recentCount = 0;
+    let resolvedCount = 0;
+    bills = mapped.filter((b) => {
+      const recent = isRecent(b);
+      const resolved = !recent && isAlreadyResolved(b);
+      if (recent) recentCount += 1;
+      if (resolved) resolvedCount += 1;
+      return recent || resolved;
+    });
+    note(
+      "info",
+      `의안 ${mapped.length}건 중 채택 ${bills.length}건 ` +
+        `(최근 ${WINDOW_DAYS}일 ${recentCount}건 + 창 밖이지만 이미 결론 난 의안 ${resolvedCount}건)`,
+    );
     if (rows[0]) note("info", `의안 응답 필드: ${Object.keys(rows[0]).join(", ")}`);
   } catch (e) {
     note("error", `의안 수집 실패: ${e.message}`);
@@ -279,7 +305,9 @@ async function fetchVotesPerBill(bills) {
       b.fact.events.some((e) => e.label.includes("본회의")) &&
       !NO_VOTE_RESULT.test(b.fact.procResult ?? ""),
   );
-  const limit = Number(process.env.SYNC_VOTE_LOOKUP_LIMIT ?? 400);
+  // 이제 창 밖이라도 "이미 결론 난" 의안을 전부 포함하므로 대상이 크게 늘 수 있다.
+  // 조회 1건당 수백ms 라 수천 건도 몇 분이면 끝난다 — 한도를 넉넉히 잡는다.
+  const limit = Number(process.env.SYNC_VOTE_LOOKUP_LIMIT ?? 3000);
   const targeted = targets.slice(0, limit);
   const merged = [];
   let failed = 0;
