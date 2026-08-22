@@ -1,1 +1,16 @@
-{ "runs": [] }
+{
+  "runs": [
+    {
+      "startedAt": "2026-08-22T07:41:12.345Z",
+      "finishedAt": "2026-08-22T07:41:12.351Z",
+      "status": "skipped",
+      "entries": [
+        {
+          "at": "2026-08-22T07:41:12.346Z",
+          "level": "warn",
+          "message": "ASSEMBLY_API_KEY 가 없어 동기화를 건너뜁니다. 기존 데이터를 그대로 둡니다."
+        }
+      ]
+    }
+  ]
+}
