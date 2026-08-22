@@ -344,8 +344,27 @@ async function writeSyncLog({ startedAt, status }) {
   await writeJson("sync-log.json", { runs });
 }
 
-/** 정당 표시색 — 정치적 의미 없이 목록 구분용으로만 쓴다. */
+/**
+ * 정당 표시색.
+ *
+ * 위키백과 "틀:정당색/대한민국"(정당이 공개한 PI 매뉴얼·보도자료 기준으로 커뮤니티가
+ * 유지하는 문서)에서 확인한 각 정당의 공식/통용 색상을 그대로 쓴다. 목록에 없는
+ * 신생·군소 정당은 이름을 해시해 고정폭 팔레트에서 고른 색을 임시로 쓴다 —
+ * 정치적 의미를 부여하려는 것이 아니라 화면에서 구분만 되면 된다.
+ */
+const KNOWN_PARTY_COLORS = {
+  국민의힘: "#E61E2B",
+  더불어민주당: "#003B96",
+  조국혁신당: "#0073CF",
+  진보당: "#D6001C",
+  개혁신당: "#FF7210",
+  기본소득당: "#00D2C3",
+  사회민주당: "#F58400",
+  무소속: "#6b7280",
+};
+
 function partyColor(name) {
+  if (KNOWN_PARTY_COLORS[name]) return KNOWN_PARTY_COLORS[name];
   const palette = ["#2f6fd0", "#c0392b", "#1f8a5b", "#7a4bbd", "#c77b1a", "#0f8a8a", "#6b7280"];
   let h = 0;
   for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) % 997;
