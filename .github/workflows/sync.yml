@@ -30,6 +30,8 @@ jobs:
           node-version: 22
 
       - name: 공식 기록 수집
+        id: collect
+        continue-on-error: true # 실패해도 아래 로그 커밋 단계까지 진행한다
         env:
           ASSEMBLY_API_KEY: ${{ secrets.ASSEMBLY_API_KEY }}
           LAW_GO_KR_OC: ${{ secrets.LAW_GO_KR_OC }}
@@ -37,7 +39,9 @@ jobs:
           SYNC_AGE: ${{ vars.SYNC_AGE }}
         run: npm run sync
 
-      - name: 변경분 커밋
+      # 실패했을 때야말로 로그가 필요하므로, 성공·실패와 무관하게 항상 커밋한다.
+      - name: 결과·로그 커밋
+        if: always()
         run: |
           if [ -z "$(git status --porcelain src/data/official)" ]; then
             echo "변경 없음"
@@ -46,5 +50,12 @@ jobs:
           git config user.name "watchers-sync[bot]"
           git config user.email "watchers-sync@users.noreply.github.com"
           git add src/data/official
-          git commit -m "공식 기록 동기화 $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST')"
+          git commit -m "공식 기록 동기화 $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M KST') [${{ steps.collect.outcome }}]"
+          git pull --rebase --autostash
           git push
+
+      - name: 수집 실패 시 잡도 실패로 표시
+        if: steps.collect.outcome == 'failure'
+        run: |
+          echo "수집 단계가 실패했습니다. src/data/official/sync-log.json 에 원인이 기록되어 있습니다."
+          exit 1
