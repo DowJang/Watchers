@@ -1,45 +1,45 @@
 {
-  "syncedAt": "2026-08-22T10:11:25.670Z",
+  "syncedAt": "2026-08-22T10:18:37.539Z",
   "parties": [
     {
       "id": "조국혁신당",
       "name": "조국혁신당",
-      "color": "#1f8a5b"
+      "color": "#0073CF"
     },
     {
       "id": "국민의힘",
       "name": "국민의힘",
-      "color": "#0f8a8a"
+      "color": "#E61E2B"
     },
     {
       "id": "더불어민주당",
       "name": "더불어민주당",
-      "color": "#1f8a5b"
+      "color": "#003B96"
     },
     {
       "id": "무소속",
       "name": "무소속",
-      "color": "#7a4bbd"
+      "color": "#6b7280"
     },
     {
       "id": "진보당",
       "name": "진보당",
-      "color": "#0f8a8a"
+      "color": "#D6001C"
     },
     {
       "id": "기본소득당",
       "name": "기본소득당",
-      "color": "#1f8a5b"
+      "color": "#00D2C3"
     },
     {
       "id": "개혁신당",
       "name": "개혁신당",
-      "color": "#c77b1a"
+      "color": "#FF7210"
     },
     {
       "id": "사회민주당",
       "name": "사회민주당",
-      "color": "#7a4bbd"
+      "color": "#F58400"
     }
   ],
   "legislators": [
