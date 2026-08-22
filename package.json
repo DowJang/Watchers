@@ -11,6 +11,7 @@
     "sync:probe": "node scripts/probe.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
     "next": "^15.5.23",
     "react": "19.1.1",
     "react-dom": "19.1.1"
