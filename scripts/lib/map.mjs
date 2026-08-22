@@ -108,6 +108,13 @@ export function mapBill(row) {
       },
       events: buildEvents(row),
       procResult,
+      /**
+       * 열린국회정보 의안정보에는 헌재 결정 여부가 없다. 헌재 결정 공개 API 가 없어
+       * 별도 수집 경로가 필요하므로(남은 범위), 지금은 "판단 없음"을 기본값으로 채운다.
+       * 이 필드를 비워 두면(undefined) 화면의 CourtPill 색상·라벨 조회가 깨진다 —
+       * 반드시 CourtStatus 값 중 하나로 채워야 한다.
+       */
+      courtStatus: "NONE",
       sources: detailUrl
         ? [{ agency: "국회의안정보시스템", label: "의안 원문 및 처리경과", url: detailUrl }]
         : [],

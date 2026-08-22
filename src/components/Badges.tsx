@@ -39,8 +39,11 @@ export function CourtPill({
   status: CourtStatus;
   size?: "sm" | "md";
 }) {
-  const color = courtColor[status];
-  const notable = status !== "NONE";
+  // 정적 JSON 에서 오는 값이라 타입 체크를 우회한다 — 값이 비었거나 알 수 없으면
+  // "판단 없음"으로 안전하게 대체한다 (빈 배지로 깨지지 않도록).
+  const safeStatus: CourtStatus = status in courtLabel ? status : "NONE";
+  const color = courtColor[safeStatus];
+  const notable = safeStatus !== "NONE";
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border font-bold ${
@@ -55,7 +58,7 @@ export function CourtPill({
       {notable ? (
         <span aria-hidden className="inline-block size-2 rounded-full" style={{ background: color }} />
       ) : null}
-      {courtLabel[status]}
+      {courtLabel[safeStatus]}
     </span>
   );
 }

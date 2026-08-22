@@ -249,7 +249,7 @@ async function main() {
       bills: bills.length,
       legislators: legislators.length,
       withVotes: bills.filter((b) => b.fact.vote).length,
-      withAnalysis: analyzed,
+      withSummary: summarized,
     },
     today: countTodayChanges(bills, today),
   });
