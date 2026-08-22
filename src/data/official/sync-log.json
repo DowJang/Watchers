@@ -1,6 +1,110 @@
 {
   "runs": [
     {
+      "startedAt": "2026-08-22T08:44:20.280Z",
+      "finishedAt": "2026-08-22T08:44:29.358Z",
+      "status": "ok",
+      "entries": [
+        {
+          "at": "2026-08-22T08:44:20.794Z",
+          "level": "info",
+          "message": "국회의원 299명 수집"
+        },
+        {
+          "at": "2026-08-22T08:44:27.429Z",
+          "level": "info",
+          "message": "의안 API 파라미터: {\"AGE\":\"22\"}"
+        },
+        {
+          "at": "2026-08-22T08:44:27.450Z",
+          "level": "info",
+          "message": "의안 2000건 중 최근 120일 1973건 채택"
+        },
+        {
+          "at": "2026-08-22T08:44:27.450Z",
+          "level": "info",
+          "message": "의안 응답 필드: BILL_ID, BILL_NO, BILL_NAME, COMMITTEE, PROPOSE_DT, PROC_RESULT, AGE, DETAIL_LINK, PROPOSER, MEMBER_LIST, LAW_PROC_DT, LAW_PROC_RESULT_CD, RST_MONA_CD, LAW_PRESENT_DT, LAW_SUBMIT_DT, CMT_PROC_RESULT_CD, CMT_PROC_DT, CMT_PRESENT_DT, COMMITTEE_DT, PROC_DT, COMMITTEE_ID, PUBL_MONA_CD, RST_PROPOSER, PUBL_PROPOSER"
+        },
+        {
+          "at": "2026-08-22T08:44:29.315Z",
+          "level": "info",
+          "message": "표결 API 파라미터: {\"AGE\":\"22\"}"
+        },
+        {
+          "at": "2026-08-22T08:44:29.316Z",
+          "level": "info",
+          "message": "표결 응답 필드: BILL_ID, PROC_DT, BILL_NO, BILL_NAME, CURR_COMMITTEE, CURR_COMMITTEE_ID, PROC_RESULT_CD, BILL_KIND_CD, AGE, MEMBER_TCNT, VOTE_TCNT, YES_TCNT, NO_TCNT, BLANK_TCNT, LINK_URL"
+        },
+        {
+          "at": "2026-08-22T08:44:29.317Z",
+          "level": "info",
+          "message": "표결 기록 0건 수집"
+        },
+        {
+          "at": "2026-08-22T08:44:29.317Z",
+          "level": "info",
+          "message": "공포일 확보 0건 (국회 의안정보 기준)"
+        },
+        {
+          "at": "2026-08-22T08:44:29.330Z",
+          "level": "info",
+          "message": "헌법 분석 연결 0건 / 미작성 1973건"
+        },
+        {
+          "at": "2026-08-22T08:44:29.358Z",
+          "level": "info",
+          "message": "동기화 완료 — 의안 1973 / 의원 299"
+        }
+      ]
+    },
+    {
+      "startedAt": "2026-08-22T08:37:53.847Z",
+      "finishedAt": "2026-08-22T08:37:54.194Z",
+      "status": "failed",
+      "entries": [
+        {
+          "at": "2026-08-22T08:37:54.045Z",
+          "level": "error",
+          "message": "국회의원 수집 실패: ERROR-290: 인증키가 유효하지 않습니다. 인증키가 없는 경우, 홈페이지에서 인증키를 신청하십시오."
+        },
+        {
+          "at": "2026-08-22T08:37:54.158Z",
+          "level": "error",
+          "message": "의안 수집 실패: ERROR-290: 인증키가 유효하지 않습니다. 인증키가 없는 경우, 홈페이지에서 인증키를 신청하십시오."
+        },
+        {
+          "at": "2026-08-22T08:37:54.188Z",
+          "level": "warn",
+          "message": "표결 일괄 수집 실패, 의안별 조회로 전환: ERROR-290: 인증키가 유효하지 않습니다. 인증키가 없는 경우, 홈페이지에서 인증키를 신청하십시오."
+        },
+        {
+          "at": "2026-08-22T08:37:54.188Z",
+          "level": "info",
+          "message": "의안별 표결 조회 0건 대상 / 실패 0건"
+        },
+        {
+          "at": "2026-08-22T08:37:54.188Z",
+          "level": "info",
+          "message": "공포일 확보 0건 (국회 의안정보 기준)"
+        },
+        {
+          "at": "2026-08-22T08:37:54.189Z",
+          "level": "info",
+          "message": "헌법 분석 연결 0건 / 미작성 0건"
+        },
+        {
+          "at": "2026-08-22T08:37:54.193Z",
+          "level": "info",
+          "message": "동기화 완료 — 의안 0 / 의원 0"
+        },
+        {
+          "at": "2026-08-22T08:37:54.193Z",
+          "level": "error",
+          "message": "의원·의안 모두 0건 수집 — 위 로그에서 실패 원인을 확인하세요."
+        }
+      ]
+    },
+    {
       "startedAt": "2026-08-22T08:19:36.152Z",
       "finishedAt": "2026-08-22T08:21:24.297Z",
       "status": "failed",
