@@ -1,6 +1,53 @@
 {
   "runs": [
     {
+      "startedAt": "2026-08-22T10:45:53.491Z",
+      "finishedAt": "2026-08-22T10:49:35.236Z",
+      "status": "ok",
+      "entries": [
+        {
+          "at": "2026-08-22T10:45:54.064Z",
+          "level": "info",
+          "message": "국회의원 299명 수집"
+        },
+        {
+          "at": "2026-08-22T10:46:17.686Z",
+          "level": "info",
+          "message": "의안 API 파라미터: {\"AGE\":\"22\"} — 총 18862건 수신"
+        },
+        {
+          "at": "2026-08-22T10:46:17.780Z",
+          "level": "info",
+          "message": "의안 18862건 중 채택 6871건 (최근 300일 6314건 + 창 밖이지만 이미 결론 난 의안 557건)"
+        },
+        {
+          "at": "2026-08-22T10:46:17.780Z",
+          "level": "info",
+          "message": "의안 응답 필드: BILL_ID, BILL_NO, BILL_NAME, COMMITTEE, PROPOSE_DT, PROC_RESULT, AGE, DETAIL_LINK, PROPOSER, MEMBER_LIST, LAW_PROC_DT, LAW_PROC_RESULT_CD, RST_MONA_CD, LAW_PRESENT_DT, LAW_SUBMIT_DT, CMT_PROC_RESULT_CD, CMT_PROC_DT, CMT_PRESENT_DT, COMMITTEE_DT, PROC_DT, COMMITTEE_ID, PUBL_MONA_CD, RST_PROPOSER, PUBL_PROPOSER"
+        },
+        {
+          "at": "2026-08-22T10:49:35.055Z",
+          "level": "info",
+          "message": "의안별 표결 조회 624건 시도 / 실패 0건 / 확보 620건"
+        },
+        {
+          "at": "2026-08-22T10:49:35.113Z",
+          "level": "info",
+          "message": "공포일 확보 0건 (국회 의안정보 기준)"
+        },
+        {
+          "at": "2026-08-22T10:49:35.152Z",
+          "level": "info",
+          "message": "쉬운 요약 연결 0건 / 미작성 6871건"
+        },
+        {
+          "at": "2026-08-22T10:49:35.235Z",
+          "level": "info",
+          "message": "동기화 완료 — 의안 6871 / 의원 299"
+        }
+      ]
+    },
+    {
       "startedAt": "2026-08-22T10:18:37.539Z",
       "finishedAt": "2026-08-22T10:19:17.634Z",
       "status": "ok",
