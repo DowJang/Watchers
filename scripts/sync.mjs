@@ -234,9 +234,16 @@ async function main() {
     },
     today: countTodayChanges(bills, today),
   });
-  await writeSyncLog({ startedAt, status: bills.length > 0 ? "ok" : "empty" });
-
   note("info", `동기화 완료 — 의안 ${bills.length} / 의원 ${legislators.length}`);
+
+  // 의원·의안이 둘 다 0건이면 "오늘은 새 법안이 없었다"가 아니라 수집 자체가 실패한 것이다.
+  // 이 경우 워크플로를 실패로 표시해 알아채지 못한 채 지나가지 않게 한다.
+  const totalFailure = legislators.length === 0 && bills.length === 0;
+  if (totalFailure) note("error", "의원·의안 모두 0건 수집 — 위 로그에서 실패 원인을 확인하세요.");
+
+  await writeSyncLog({ startedAt, status: totalFailure ? "failed" : bills.length > 0 ? "ok" : "empty" });
+
+  if (totalFailure) process.exitCode = 1;
 }
 
 /**

@@ -29,6 +29,26 @@ export const SERVICES = {
   members: process.env.ASSEMBLY_SVC_MEMBERS ?? "nwvrqwxyaytdsfvhu",
 };
 
+/** 일시적 네트워크 오류(타임아웃·연결 리셋)에 대비해 짧게 재시도한다. */
+async function fetchWithRetry(url, attempts = 3) {
+  let lastErr;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20_000);
+      try {
+        return await fetch(url, { headers: { accept: "application/json" }, signal: controller.signal });
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch (e) {
+      lastErr = e;
+      if (i < attempts - 1) await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 export class AssemblyApiError extends Error {
   constructor(message, { service, code, status } = {}) {
     super(message);
@@ -63,7 +83,14 @@ export async function fetchPage(service, { pIndex = 1, pSize = 100, params = {} 
     if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
   }
 
-  const res = await fetch(url, { headers: { accept: "application/json" } });
+  let res;
+  try {
+    res = await fetchWithRetry(url);
+  } catch (e) {
+    // Node 의 fetch 는 원인을 e.cause 에 감춘다("fetch failed" 만 보이면 원인을 알 수 없다).
+    const cause = e?.cause ? ` — 원인: ${e.cause.code ?? e.cause.message ?? e.cause}` : "";
+    throw new AssemblyApiError(`네트워크 요청 실패: ${e.message}${cause}`, { service });
+  }
   if (!res.ok) {
     throw new AssemblyApiError(`HTTP ${res.status}`, { service, status: res.status });
   }
