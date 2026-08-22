@@ -83,7 +83,7 @@ export default function HomePage() {
       <Section
         title="헌법충돌 주요 법안"
         desc="감시자들이 헌법과의 충돌 소지를 높게 검토한 법안입니다."
-        more="/bills?level=HIGH"
+        more="/bills/?level=HIGH"
       >
         <CardGrid>
           {keyConflictBills(3).map((b) => (
@@ -108,7 +108,7 @@ export default function HomePage() {
       </Section>
 
       {/* ── 신규 법안 ── */}
-      <Section title="신규 법안" desc="최근 발의된 순서입니다." more="/bills?sort=recent">
+      <Section title="신규 법안" desc="최근 발의된 순서입니다." more="/bills/?sort=recent">
         <CardGrid>
           {newBills(3).map((b) => (
             <BillCard key={b.id} bill={b} />
@@ -117,7 +117,7 @@ export default function HomePage() {
       </Section>
 
       {/* ── 현재 시행 법률 ── */}
-      <Section title="현재 시행 법률 · 시행 예정" more="/bills?status=IN_FORCE">
+      <Section title="현재 시행 법률 · 시행 예정" more="/bills/?status=IN_FORCE">
         <CardGrid>
           {inForceBills(3).map((b) => (
             <BillCard key={b.id} bill={b} />

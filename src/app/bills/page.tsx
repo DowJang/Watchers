@@ -1,31 +1,17 @@
 import type { Metadata } from "next";
 import { BillBrowser } from "@/components/BillBrowser";
 import { allBills } from "@/lib/site";
-import type { BillStatus, ConflictLevel } from "@/lib/types";
-import { conflictOrder, statusOrder } from "@/lib/labels";
 
 export const metadata: Metadata = {
   title: "법안",
   description: "국회에 발의된 법안을 헌법쟁점 기준으로 살펴봅니다.",
 };
 
-type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-
-function one(v: string | string[] | undefined): string | undefined {
-  return Array.isArray(v) ? v[0] : v;
-}
-
-export default async function BillsPage({ searchParams }: { searchParams: SearchParams }) {
-  const sp = await searchParams;
-  const levelRaw = one(sp.level);
-  const statusRaw = one(sp.status);
-  const sortRaw = one(sp.sort);
-
-  const level = conflictOrder.includes(levelRaw as ConflictLevel) ? (levelRaw as ConflictLevel) : undefined;
-  const status = statusOrder.includes(statusRaw as BillStatus) ? (statusRaw as BillStatus) : undefined;
-  const sort =
-    sortRaw === "recent" || sortRaw === "opinion" || sortRaw === "gravity" ? sortRaw : undefined;
-
+/**
+ * 정적 사이트이므로 서버에서 쿼리스트링을 읽지 않는다.
+ * 초기 필터(?level=HIGH 등)는 BillBrowser 가 브라우저에서 직접 읽는다.
+ */
+export default function BillsPage() {
   return (
     <>
       <header className="pb-1 pt-2">
@@ -36,12 +22,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Search
         </p>
       </header>
 
-      <BillBrowser
-        bills={allBills()}
-        initialLevel={level}
-        initialStatus={status}
-        initialSort={sort}
-      />
+      <BillBrowser bills={allBills()} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Bill, BillStatus, ConflictLevel } from "@/lib/types";
 import { conflictMeta, conflictOrder, statusLabel, statusOrder } from "@/lib/labels";
 import { BillCard } from "./BillCard";
@@ -16,21 +16,25 @@ const sortLabel: Record<Sort, string> = {
 
 const levelRank = new Map(conflictOrder.map((l, i) => [l, i]));
 
-export function BillBrowser({
-  bills,
-  initialLevel,
-  initialStatus,
-  initialSort,
-}: {
-  bills: Bill[];
-  initialLevel?: ConflictLevel;
-  initialStatus?: BillStatus;
-  initialSort?: Sort;
-}) {
+export function BillBrowser({ bills }: { bills: Bill[] }) {
   const [q, setQ] = useState("");
-  const [level, setLevel] = useState<ConflictLevel | "ALL">(initialLevel ?? "ALL");
-  const [status, setStatus] = useState<BillStatus | "ALL">(initialStatus ?? "ALL");
-  const [sort, setSort] = useState<Sort>(initialSort ?? "gravity");
+  const [level, setLevel] = useState<ConflictLevel | "ALL">("ALL");
+  const [status, setStatus] = useState<BillStatus | "ALL">("ALL");
+  const [sort, setSort] = useState<Sort>("gravity");
+
+  /**
+   * 정적 사이트이므로 초기 필터는 브라우저에서 쿼리스트링을 읽어 적용한다.
+   * 예: /bills/?level=HIGH  (홈 화면의 "전체 보기" 링크)
+   */
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const lv = sp.get("level");
+    const st = sp.get("status");
+    const so = sp.get("sort");
+    if (lv && (conflictOrder as string[]).includes(lv)) setLevel(lv as ConflictLevel);
+    if (st && (statusOrder as string[]).includes(st)) setStatus(st as BillStatus);
+    if (so === "recent" || so === "opinion" || so === "gravity") setSort(so);
+  }, []);
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
