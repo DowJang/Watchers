@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CitizenComment } from "@/lib/types";
 import { dt } from "@/lib/format";
+import { backendConfigured, loadComments, postComment, type PublicComment } from "@/lib/citizen";
 
 const MAX_CHARS = 240;
 const MAX_LINES = 3;
@@ -10,35 +11,68 @@ const MAX_LINES = 3;
 /**
  * 제작서 §15 — 시민 코멘트.
  * 최소 1줄 / 최대 3줄 / 권장 240자, 빈 댓글·도배 금지.
- * ⚠️ 현재는 프런트 데모다. 실제로는 인증 사용자만 작성 가능(권장 기본값: 투표 완료자)하며
- * 서버에서 스팸·도배 판정과 Audit Log 기록을 수행한다(§16, §23).
+ *
+ * 백엔드 연결 시: 투표를 마친 인증 사용자만 작성할 수 있고(권장 기본값),
+ * 길이·줄수·중복·연속작성 검증과 숨김 처리는 서버에서 수행된다.
  */
-export function CommentPanel({ initial }: { initial: CitizenComment[] }) {
-  const [items, setItems] = useState<CitizenComment[]>(initial);
+export function CommentPanel({ billId, initial }: { billId: string; initial: CitizenComment[] }) {
+  const [items, setItems] = useState<PublicComment[]>(
+    initial.map((c) => ({
+      id: c.id,
+      billId: c.billId,
+      body: c.body,
+      vote: c.vote ?? null,
+      handle: c.handle,
+      createdAt: c.createdAt,
+    })),
+  );
   const [text, setText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!backendConfigured) return;
+    void loadComments(billId).then(setItems);
+  }, [billId]);
 
   const lines = useMemo(() => text.split("\n").filter((l) => l.trim().length > 0).length, [text]);
   const tooLong = text.length > MAX_CHARS;
   const tooManyLines = lines > MAX_LINES;
   const empty = text.trim().length === 0;
   const duplicate = items.some((c) => c.body.trim() === text.trim() && text.trim().length > 0);
-  const invalid = empty || tooLong || tooManyLines || duplicate;
+  const invalid = empty || tooLong || tooManyLines || duplicate || busy;
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (invalid) return;
-    setItems((prev) => [
-      {
-        id: `local-${prev.length + 1}`,
-        billId: initial[0]?.billId ?? "",
-        handle: "나 (미인증)",
-        body: text.trim(),
-        createdAt: new Date().toISOString().replace("Z", "+00:00"),
-        status: "VISIBLE",
-      },
-      ...prev,
-    ]);
-    setText("");
+    setError(null);
+
+    if (!backendConfigured) {
+      setItems((prev) => [
+        {
+          id: `local-${prev.length + 1}`,
+          billId,
+          handle: "나 (미인증)",
+          body: text.trim(),
+          vote: null,
+          createdAt: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      setText("");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await postComment(billId, text.trim());
+      setText("");
+      setItems(await loadComments(billId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "등록하지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -85,9 +119,14 @@ export function CommentPanel({ initial }: { initial: CitizenComment[] }) {
             className="ml-auto rounded-lg px-4 py-2 text-sm font-bold disabled:opacity-40"
             style={{ background: "var(--color-opinion)", color: "#fff" }}
           >
-            등록
+            {busy ? "등록 중…" : "등록"}
           </button>
         </div>
+        {error ? (
+          <p className="mt-1.5 text-[0.8125rem] font-bold" style={{ color: "var(--color-lv-void)" }}>
+            {error}
+          </p>
+        ) : null}
       </form>
 
       <ul className="mt-4 divide-y" style={{ borderColor: "var(--border)" }}>
@@ -120,9 +159,20 @@ export function CommentPanel({ initial }: { initial: CitizenComment[] }) {
       </ul>
 
       <p className="mt-3 rounded-lg px-3 py-2 text-xs leading-relaxed" style={{ background: "var(--surface-2)" }}>
-        <strong className="font-bold">데모 안내</strong> — 입력한 코멘트는 저장되지 않고 화면에만 표시됩니다.
-        실제 서비스에서는 투표를 마친 인증 사용자만 작성할 수 있고, 도배·스팸·개인정보 노출은 운영원칙에 따라
-        숨김 처리되며 모든 관리행위가 로그로 남습니다.
+        {backendConfigured ? (
+          <>
+            <strong className="font-bold">운영 원칙</strong> — 투표를 마친 인증 사용자만 작성할 수 있습니다.
+            도배·스팸·개인정보 노출·협박·사칭·광고는 숨김 처리되며, 정치적 의견이 마음에 들지 않는다는
+            이유로는 삭제하지 않습니다. 모든 관리행위는 로그로 남습니다. 표시명은 작성자를 되돌릴 수 없는
+            값입니다.
+          </>
+        ) : (
+          <>
+            <strong className="font-bold">데모 안내</strong> — 입력한 코멘트는 저장되지 않고 화면에만
+            표시됩니다. 실제 서비스에서는 투표를 마친 인증 사용자만 작성할 수 있고, 도배·스팸·개인정보
+            노출은 운영원칙에 따라 숨김 처리되며 모든 관리행위가 로그로 남습니다.
+          </>
+        )}
       </p>
     </div>
   );

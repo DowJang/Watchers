@@ -443,7 +443,7 @@ export default async function BillDetailPage({ params }: { params: Params }) {
 
           {/* §15 시민 코멘트 */}
           <OpinionZone title="시민 코멘트">
-            <CommentPanel initial={commentsFor(bill.id)} />
+            <CommentPanel billId={bill.id} initial={commentsFor(bill.id)} />
           </OpinionZone>
         </div>
 
