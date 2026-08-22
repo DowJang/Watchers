@@ -8,6 +8,7 @@ import { Timeline } from "@/components/Timeline";
 import { VoteBreakdown } from "@/components/VoteBreakdown";
 import { CitizenVotePanel } from "@/components/CitizenVotePanel";
 import { CommentPanel } from "@/components/CommentPanel";
+import { AskExternalAI } from "@/components/AskExternalAI";
 import { NOT_CONFIRMED_NOTICE, courtLabel, needsNotConfirmedNotice, statusLabel } from "@/lib/labels";
 import { commentsFor } from "@/lib/site";
 import { d, n } from "@/lib/format";
@@ -233,6 +234,9 @@ export default async function BillDetailPage({ params }: { params: Params }) {
               </p>
             ) : null}
           </FactZone>
+
+          {/* 외부 AI에게 물어보기 — 감시자들의 판단이 아니다 */}
+          <AskExternalAI bill={bill} />
 
           {/* 공식 원문 모음 */}
           <FactZone id="sources" title="공식 원문">
