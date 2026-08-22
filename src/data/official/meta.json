@@ -1,11 +1,11 @@
 {
-  "lastSyncedAt": "2026-08-22T08:51:53.806Z",
+  "lastSyncedAt": "2026-08-22T09:54:40.491Z",
   "dataOrigin": "OFFICIAL",
   "counts": {
     "bills": 9147,
     "legislators": 299,
     "withVotes": 140,
-    "withAnalysis": 0
+    "withSummary": 0
   },
   "today": {
     "newBills": 0,
